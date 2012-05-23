@@ -35,6 +35,21 @@ If you'd prefer plaintext logging without the ANSI colors, just use:
 
     (defonce logger-middleware (nr-server/add-middleware logger/wrap-with-plaintext-logger))
 
+Logging Other Data
+------------------
+
+You can use the same log facility used by the logger middleware to log
+anything else you like, and write data to the same log file that
+requests are logged to. Due to a quirk in Log4J, it must be
+initialized for every namespace that wishes to log. In the namespace
+that you'll be logging from, call:
+
+     (logger/setup-default-logger!)
+
+Then, you can use `clojure.tools.logging` functions normally, e.g.
+
+    (clojure.tools.logging/error "Some error message")
+    (clojure.tools.logging/info "An informational message")
 
 Customization
 -------------
