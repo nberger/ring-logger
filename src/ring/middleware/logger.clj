@@ -3,8 +3,10 @@
    [clj-logging-config.log4j :as log-config]
    [clojure.tools.logging :as log]
    [clansi.core :as ansi]
-   ))
+   )
+  (import (org.apache.log4j DailyRollingFileAppender EnhancedPatternLayout FileAppender)))
 
+;; TODO: Facilities for easily modifying the log file name
 (def base-log-name "logs/ring.log")
 
 ;; The generation of the calling class, line numbers, etc. is
@@ -30,15 +32,15 @@
 ;;
 (def rotating-logger
   "This logging adapter rotates the logfile nightly at about midnight."
-  (org.apache.log4j.DailyRollingFileAppender.
-   (org.apache.log4j.EnhancedPatternLayout. production-log-prefix-format)
+  (DailyRollingFileAppender.
+   (EnhancedPatternLayout. production-log-prefix-format)
    base-log-name
    ".yyyy-MM-dd"))
 
 (def appending-logger
   "This logging adapter simply appends new log lines to the existing logfile."
-  (org.apache.log4j.FileAppender.
-   (org.apache.log4j.EnhancedPatternLayout. production-log-prefix-format)
+  (FileAppender.
+   (EnhancedPatternLayout. production-log-prefix-format)
    base-log-name
    true))
 
@@ -74,12 +76,13 @@ Sends all log messages at \"info\" level to the Log4J logging
                             (>= status 500) [:bright :red] 
                             (>= status 400) [:red] 
                             :else [:yellow]))
-        log-message (str "(" remote-addr ") "
-                         request-method " "
-                         uri " "
-                         "[Status: " colorstatus "] "
-                         " (" totaltime " ms)"
-                         ) ]
+        log-message (str
+                     "[Status: " colorstatus "] "
+                     request-method " "
+                     uri " "
+                     "(" remote-addr ") "
+                     " (" totaltime " ms)"
+                     ) ]
 
     (if (>= status 500)
       (log/error log-message)
@@ -90,24 +93,32 @@ Sends all log messages at \"info\" level to the Log4J logging
   "Like log4j-color-logger, but doesn't log any ANSI color codes."
   (ansi/without-ansi (log4j-color-logger status totaltime request)))
 
-;; wrap-with-logger originally based on
-;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
-(defn wrap-with-logger
-  ([handler logger]
-     "Adds logging for requests using the given logger function.
+(defn- make-logger
+  [handler logger]
+  "Adds logging for requests using the given logger function.
 The logger function will receive 3 arguments: the integer response
 status (e.g. 200 for OK), the total time taken by response generation,
 and the request map."
-      (fn [request]
-        (let [start  (System/currentTimeMillis)
-              resp   (handler request)
-              status (:status resp)
-              finish (System/currentTimeMillis)
-              total  (- finish start)]
-          (logger status total request)
-          resp)))
+;; originally based on
+;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
+  (fn [request]
+    (let [start  (System/currentTimeMillis)
+          resp   (handler request)
+          status (:status resp)
+          finish (System/currentTimeMillis)
+          total  (- finish start)]
+      (logger status total request)
+      resp)))
+
+
+(defn wrap-with-logger
   ([handler]
      "Adds logging using a prepackaged default logger."
-     (wrap-with-logger log4j-color-logger)))
+     (make-logger handler log4j-color-logger)))
+
+(defn wrap-with-plaintext-logger
+  ([handler]
+     "Adds logging using a prepackaged default logger."
+     (make-logger handler log4j-colorless-logger)))
 
 
