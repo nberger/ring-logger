@@ -21,7 +21,7 @@ In Noir, setup is as simple as:
          [noir.server]
          [ring.middleware.logger :as logger]))
 
-    (defonce logger-middleware (nr-server/add-middleware logger/wrap-with-logger))
+    (defonce logger-middleware (noir.server/add-middleware logger/wrap-with-logger))
     ;; Then start the server normally
 
 You'll then see messages like the following in `logs/ring.log` (in color):
