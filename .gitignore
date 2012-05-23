@@ -5,3 +5,4 @@ pom.xml
 .lein-deps-sum
 .lein-env
 target
+logs
