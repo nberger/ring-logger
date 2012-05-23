@@ -6,7 +6,12 @@ Ring middleware to log each request using Log4J.
 Usage
 -----
 
-Just add the middleware to your stack. It comes preconfigured with
+In your `project.clj`, add the following dependency:
+
+                 [ring.middleware.logger "0.1.0"]
+
+
+Then, just add the middleware to your stack. It comes preconfigured with
 reasonable defaults, which append ANSI colorized log messages on each request to `logs/ring.log`.
 
 In Noir, setup is as simple as:
