@@ -16,8 +16,12 @@
 ;; http://logging.apache.org/log4j/companions/extras/apidocs/org/apache/log4j/EnhancedPatternLayout.html
 ;; for information on which fields are slow.
 ;;
-(def debugging-log-prefix-format "%d %l [%p] : %throwable%m%n")
-(def production-log-prefix-format "%d [%p] : %throwable%m%n")
+;; TODO: Make these functions, somehow, so that it can alter the
+;; spacing dynamically; e.g. if an %x is present, insert a space
+;; before it, else don't.
+;;
+(def debugging-log-prefix-format "%d %l [%p] : %throwable%m %x%n")
+(def production-log-prefix-format "%d [%p] : %throwable%m %x%n")
 
 
 ;; Some basic logging adapters.
@@ -69,13 +73,14 @@ log4j-colorless-logger if you want plaintext.
 Sends all log messages at \"info\" level to the Log4J logging
   infrastructure, unless status is >= 500, in which case they are sent
   as errors."
-  (let [colorstatus (apply ansi/style
-                           (str status)
-                           (cond
-                            (< status 300) [:grey] 
-                            (>= status 500) [:bright :red] 
-                            (>= status 400) [:red] 
-                            :else [:yellow]))
+  (let [colorstatus (try (apply ansi/style
+                                (str status)
+                                (cond
+                                 (< status 300) [:grey] 
+                                 (>= status 500) [:bright :red] 
+                                 (>= status 400) [:red] 
+                                 :else [:yellow]))
+                         (catch Exception e status))
         log-message (str
                      "[Status: " colorstatus "] "
                      request-method " "
@@ -84,7 +89,7 @@ Sends all log messages at \"info\" level to the Log4J logging
                      " (" totaltime " ms)"
                      ) ]
 
-    (if (>= status 500)
+    (if (and (number? status) (>= status 500))
       (log/error log-message)
       (log/info log-message))))
 
