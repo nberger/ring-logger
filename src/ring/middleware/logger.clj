@@ -16,8 +16,8 @@
 ;; http://logging.apache.org/log4j/companions/extras/apidocs/org/apache/log4j/EnhancedPatternLayout.html
 ;; for information on which fields are slow.
 ;;
-(def debugging-log-prefix-format "%d %l [%p] : %throwable%m%n")
-(def production-log-prefix-format "%d [%p] : %throwable%m%n")
+(def debugging-log-prefix-format "%d %l [%p] : %throwable%m %x%n")
+(def production-log-prefix-format "%d [%p] : %throwable%m %x%n")
 
 
 ;; Some basic logging adapters.

@@ -63,5 +63,6 @@ beginning of the line) for further customization. Take a look at
 
 License
 -------
-Copyright (C) 2012 Paul Legato. 
+ring.middleware.logger is by Paul Legato.
+Copyright (C) 2012 Spring Semantics Inc.
 Distributed under the Eclipse Public License, the same as Clojure.
