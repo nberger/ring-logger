@@ -8,7 +8,7 @@ Usage
 
 In your `project.clj`, add the following dependency:
 
-    [ring.middleware.logger "0.1.0"]
+    [ring.middleware.logger "0.1.1"]
 
 
 Then, just add the middleware to your stack. It comes preconfigured with
