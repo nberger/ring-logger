@@ -1,4 +1,4 @@
-(defproject ring.middleware.logger "0.2.0-SNAPSHOT"
+(defproject ring.middleware.logger "0.1.1"
   :description "Ring middleware to log each request using Log4J."
   :plugins [[lein-swank "1.4.4"]]
   :dependencies [[org.clojure/clojure "1.3.0"]
