@@ -17,11 +17,13 @@
 ;; for information on which fields are slow.
 ;;
 ;; TODO: Make these functions, somehow, so that it can alter the
-;; spacing dynamically; e.g. if an %x is present, insert a space
-;; before it, else don't.
+;; spacing dynamically; e.g. if an %x (execution context message) is
+;; present, log it, otherwise ignore it. Putting a %x in prints "null"
+;; to the log if none is set, which we don't want, which is why it's
+;; not here now.
 ;;
-(def debugging-log-prefix-format "%d %l [%p] : %throwable%m %x%n")
-(def production-log-prefix-format "%d [%p] : %throwable%m %x%n")
+(def debugging-log-prefix-format "%d %l [%p] : %throwable%m%n")
+(def production-log-prefix-format "%d [%p] : %throwable%m%n")
 
 
 ;; Some basic logging adapters.
