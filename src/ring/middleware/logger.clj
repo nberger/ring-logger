@@ -1,3 +1,14 @@
+;;
+;; ring.middleware.logger by Paul Legato.
+;; Copyright (C) 2012 Spring Semantics, Inc.
+;;
+;;
+;; The use and distribution terms for this software are covered by the
+;; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php).
+;; By using this software in any fashion, you are agreeing to be bound
+;; by the terms of this license. You must not remove this notice, or
+;; any other, from this software.
+;;
 (ns ring.middleware.logger
   (require
    [clj-logging-config.log4j :as log-config]
@@ -6,8 +17,9 @@
    )
   (import (org.apache.log4j DailyRollingFileAppender EnhancedPatternLayout FileAppender)))
 
-;; TODO: Facilities for easily modifying the log file name
+;; TODO: Facilities for easily modifying the default log file name and log level
 (def base-log-name "logs/ring.log")
+(def default-log-level :info)
 
 ;; The generation of the calling class, line numbers, etc. is
 ;; extremely slow, and should be used only in development mode or for
@@ -50,82 +62,186 @@
    base-log-name
    true))
 
-(defn setup-default-logger!
-  "Initializes the logger in the caller's current namespace. This must
-  be called once per namespace that plans to log things, so if you
-  want to use the same log facilities as defined in the Ring
-  middleware, you need to call this function in each namespace from
-  which you plan to log."
-  []
-  (log-config/set-logger! (str *ns*)
-                          :level :debug
-                          :out appending-logger))
+(defn set-default-logger!
+  ([ns]
+       "Allows the ring.middleware.logger backend to log for the given namespace. Call this
+  if you want one particular namespace to share its log backend with ring.middleware.logger.
 
+  If you want your entire application to use the r.m.l backend, use (set-default-root-logger!)"
 
-;; We must initialize the Log4J backend once per namespace that will
-;; be logging things. Here, we initialize it for ring.middleware.logger.
-(setup-default-logger!)
+     (log-config/set-logger! (str *ns*)
+                             :level default-log-level
+                             :out appending-logger))
+  ([]
+     "Allows the ring.middleware.logger backend to log for the calling context's namespace. Call this
+  if you want one particular namespace to share its log backend with ring.middleware.logger.
 
-(defn- log4j-color-logger [status totaltime {:keys [request-method uri remote-addr] :as req}]
-  "Log4J-enabled logformatter for logging middleware.
+  If you want your entire application to use the r.m.l backend, use (set-default-root-logger!)"
+     (set-default-logger! (str *ns*))))
+
+(defn set-default-root-logger!
+  ([loglevel]
+     (log-config/set-loggers! :root
+                             {:level loglevel
+                              :out appending-logger}))
+  ([]
+     "Call this if you want all logging methods in your app to go to
+the ring.middleware.logger logfile by default.
+
+Sets the default logger used by ring.middleware.logger to be the root
+logger for the application."
+     (set-default-root-logger! default-log-level)))
+
+;; Initialize a logging context for ring.middleware.logger.
+(set-default-logger!)
+
+(def id-colorizations
+  "Foreground / background color codes allowable for random ID colorization."
+  {:white :bg-white :black :bg-black :red :bg-red :green :bg-green :blue :bg-blue :yellow :bg-yellow :magenta :bg-magenta :cyan :bg-cyan} )
+
+(def id-foreground-colors (keys id-colorizations))
+(def id-colorization-count (count id-foreground-colors))
+
+(defn- get-colorization
+  [id]
+  "Returns a consistent colorization for the given id; that is, the
+  same ID produces the same color pattern. The colorization will have
+  distinct foreground and background colors."
+  (let [foreground (nth id-foreground-colors (mod id id-colorization-count))
+        background-possibilities (vals (dissoc id-colorizations foreground))
+        background (nth background-possibilities (mod id (- id-colorization-count 1)))]
+    [foreground background]))
+
+(defn- format-id [id]
+  "Returns a standard colorized, printable representation of a request id."
+  (apply ansi/style (format "%04x" id) [:bright] (get-colorization id)))
+
+(defn- log4j-pre-logger
+  [id
+   {:keys [request-method uri remote-addr] :as req}]
+  (log/info (str "[" (format-id id) "] Starting " request-method " " uri " for " remote-addr)))
+
+(defn- log4j-colorless-pre-logger
+  [id]
+  "Like log4j-pre-logger, but doesn't log any ANSI color codes."
+  (ansi/without-ansi (log4j-pre-logger id)))
+
+(defn- log4j-post-logger
+  [id
+   {:keys [request-method uri remote-addr] :as req}
+   {:keys [status] :as resp}
+   totaltime]
+  "Log4J logformatter; logs data about a finished request.
 
 Log messages will be colorized with ANSI escape codes. Use
 log4j-colorless-logger if you want plaintext.
 
+The id is randomly colorized according to its value, to make it easier
+to visually correlate request/response/exception log sets.
+
 Sends all log messages at \"info\" level to the Log4J logging
   infrastructure, unless status is >= 500, in which case they are sent
   as errors."
-  (let [colorstatus (try (apply ansi/style
+  (let [colorid (format-id id)
+        colortime (try (apply ansi/style
+                              (str totaltime)
+                              (cond
+                               (>= totaltime 1500)  [:bright :red]
+                               (>= totaltime 1000) [:red]
+                               (>= totaltime 500) [:yellow]
+                               :else :default))
+                       (catch Exception e (or totaltime "??")))
+        
+        colorstatus (try (apply ansi/style
                                 (str status)
                                 (cond
-                                 (< status 300) [:grey] 
+                                 (< status 300) [:default] 
                                  (>= status 500) [:bright :red] 
                                  (>= status 400) [:red] 
                                  :else [:yellow]))
-                         (catch Exception e status))
+                         (catch Exception e (or status "???")))
         log-message (str
-                     "[Status: " colorstatus "] "
-                     request-method " "
-                     uri " "
-                     "(" remote-addr ") "
-                     " (" totaltime " ms)"
+                     "[" colorid "] "
+                     "Finished " request-method " " uri " for " remote-addr " in (" colortime " ms)"
+                     " Status: " colorstatus
                      ) ]
 
     (if (and (number? status) (>= status 500))
       (log/error log-message)
       (log/info log-message))))
 
-(defn- log4j-colorless-logger
-  [status totaltime request]
-  "Like log4j-color-logger, but doesn't log any ANSI color codes."
-  (ansi/without-ansi (log4j-color-logger status totaltime request)))
+(defn- log4j-colorless-post-logger
+  [id request response totaltime]
+  "Like log4j-post-logger, but doesn't log any ANSI color codes."
+  (ansi/without-ansi (log4j-post-logger id request response totaltime)))
 
-(defn- make-logger
-  [handler logger]
-  "Adds logging for requests using the given logger function.
-The logger function will receive 3 arguments: the integer response
-status (e.g. 200 for OK), the total time taken by response generation,
-and the request map."
+(defn- log4j-exception-logger
+  [id
+   {:keys [request-method uri remote-addr] :as request}
+   throwable
+   totaltime]
+  (let [formatted-id (format-id id)]
+    (log/error (str "[" formatted-id "] " (ansi/style "Exception!" :bright :red)  " for " remote-addr " in (" totaltime " ms)"))
+    (log/error throwable (str "- End stacktrace for " formatted-id "-")))) ;; must include a second string argument to make c.t.logging recognize first arg as an exception)
+
+(defn- log4j-colorless-exception-logger
+  [id request throwable totaltime]
+  "Like log4j-pre-logger, but doesn't log any ANSI color codes."
+  (ansi/without-ansi (log4j-exception-logger id request throwable totaltime)))
+
+
+(defn- make-logger-middleware
+  [handler pre-logger post-logger exception-logger]
+  "Adds logging for requests using the given logger functions.
+
+The convenience function (wrap-with-logger) calls this function with
+default loggers. Use (make-logger) directly if you want to supply your own
+logger functions.
+
+Each request is assigned a random hex id, to allow the 3 possible
+logging events to be correlated.
+
+The pre-logger function is called before the handler is invoked, and
+receives the id and the request as an argument.
+
+The post-logger function is called after the response is generated,
+and receives four arguments: the id, the request, the response, and the
+total time taken by the handler.
+
+The exception-logger function is called in a (catch) clause, if an
+exception is thrown during the handler's run. It receives four
+arguments: the id, the request, the Throwable that was thrown, and the
+total time taken to that point. It re-throws the exception after
+logging it, so that other middleware has a chance to do something with
+it.
+"
 ;; originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
-    (let [start  (System/currentTimeMillis)
-          resp   (handler request)
-          status (:status resp)
-          finish (System/currentTimeMillis)
-          total  (- finish start)]
-      (logger status total request)
-      resp)))
+    (let [id (rand-int 0xffff)
+          start (System/currentTimeMillis)]
+      (try
+        (pre-logger id request)
+        (let [response (handler request)
+              finish (System/currentTimeMillis)
+              total  (- finish start)]
+          (post-logger id request response total)
+          response)
+        (catch Throwable t
+          (let [finish (System/currentTimeMillis)
+                total  (- finish start)]
+            (exception-logger id request t total))
+          (throw t))))))
 
 
 (defn wrap-with-logger
   ([handler]
-     "Adds logging using a prepackaged default logger."
-     (make-logger handler log4j-color-logger)))
+     "Adds logging using the prepackaged default loggers."
+     (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger)))
 
 (defn wrap-with-plaintext-logger
   ([handler]
-     "Adds logging using a prepackaged default logger."
-     (make-logger handler log4j-colorless-logger)))
+     "Adds logging using the ANSI-colorless prepackaged default loggers."
+     (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger)))
 
 
