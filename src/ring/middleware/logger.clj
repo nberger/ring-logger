@@ -95,6 +95,9 @@ logger for the application."
 ;; Initialize a logging context for ring.middleware.logger.
 (set-default-logger!)
 
+;; TODO: Alter this subsystem to contain a predefined map of all
+;; acceptable fg/bg combinations, since some (e.g. white on yellow)
+;; are practically illegible.
 (def id-colorizations
   "Foreground / background color codes allowable for random ID colorization."
   {:white :bg-white :black :bg-black :red :bg-red :green :bg-green :blue :bg-blue :yellow :bg-yellow :magenta :bg-magenta :cyan :bg-cyan} )
