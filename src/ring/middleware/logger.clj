@@ -121,8 +121,8 @@ logger for the application."
 
 (defn- log4j-pre-logger
   [id
-   {:keys [request-method uri remote-addr] :as req}]
-  (log/info (str "[" (format-id id) "] Starting " request-method " " uri " for " remote-addr)))
+   {:keys [request-method uri remote-addr query-string] :as req}]
+  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr)))
 
 (defn- log4j-colorless-pre-logger
   [id]
