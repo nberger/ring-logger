@@ -95,6 +95,9 @@ logger for the application."
 ;; Initialize a logging context for ring.middleware.logger.
 (set-default-logger!)
 
+;; TODO: Alter this subsystem to contain a predefined map of all
+;; acceptable fg/bg combinations, since some (e.g. white on yellow)
+;; are practically illegible.
 (def id-colorizations
   "Foreground / background color codes allowable for random ID colorization."
   {:white :bg-white :black :bg-black :red :bg-red :green :bg-green :blue :bg-blue :yellow :bg-yellow :magenta :bg-magenta :cyan :bg-cyan} )
@@ -118,8 +121,8 @@ logger for the application."
 
 (defn- log4j-pre-logger
   [id
-   {:keys [request-method uri remote-addr] :as req}]
-  (log/info (str "[" (format-id id) "] Starting " request-method " " uri " for " remote-addr)))
+   {:keys [request-method uri remote-addr query-string] :as req}]
+  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr)))
 
 (defn- log4j-colorless-pre-logger
   [id]
