@@ -125,9 +125,9 @@ logger for the application."
   (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr)))
 
 (defn- log4j-colorless-pre-logger
-  [id]
+  [id request]
   "Like log4j-pre-logger, but doesn't log any ANSI color codes."
-  (ansi/without-ansi (log4j-pre-logger id)))
+  (ansi/without-ansi (log4j-pre-logger id request)))
 
 (defn- log4j-post-logger
   [id
