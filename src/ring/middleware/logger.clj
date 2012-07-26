@@ -131,7 +131,7 @@ logger for the application."
 
 (defn- log4j-post-logger
   [id
-   {:keys [request-method uri remote-addr] :as req}
+   {:keys [request-method uri remote-addr query-string] :as req}
    {:keys [status] :as resp}
    totaltime]
   "Log4J logformatter; logs data about a finished request.
@@ -165,7 +165,7 @@ Sends all log messages at \"info\" level to the Log4J logging
                          (catch Exception e (or status "???")))
         log-message (str
                      "[" colorid "] "
-                     "Finished " request-method " " uri " for " remote-addr " in (" colortime " ms)"
+                     "Finished " request-method " " uri  (if query-string (str "?" query-string)) " for " remote-addr " in (" colortime " ms)"
                      " Status: " colorstatus
                      ) ]
 

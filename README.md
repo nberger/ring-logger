@@ -10,7 +10,7 @@ Usage
 
 In your `project.clj`, add the following dependency:
 
-    [ring.middleware.logger "0.2.2"]
+    [ring.middleware.logger "0.2.3-SNAPSHOT"]
 
 
 Then, just add the middleware to your stack. It comes preconfigured with
