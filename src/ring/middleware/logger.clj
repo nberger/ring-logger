@@ -9,6 +9,8 @@
 ;; by the terms of this license. You must not remove this notice, or
 ;; any other, from this software.
 ;;
+;; TODO: Configurable logging granularity; e.g. log request start/stop, log parameters, etc.
+;;
 (ns ring.middleware.logger
   (require
    [clj-logging-config.log4j :as log-config]
@@ -121,8 +123,10 @@ logger for the application."
 
 (defn- log4j-pre-logger
   [id
-   {:keys [request-method uri remote-addr query-string] :as req}]
-  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr)))
+   {:keys [request-method uri remote-addr query-string params] :as req}]
+  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr))
+  (if params
+    (log/info (str "[" (format-id id) "]  \\ - - - -  Params: " params))))
 
 (defn- log4j-colorless-pre-logger
   [id request]
