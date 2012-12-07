@@ -9,6 +9,8 @@
 ;; by the terms of this license. You must not remove this notice, or
 ;; any other, from this software.
 ;;
+;; TODO: Configurable logging granularity; e.g. log request start/stop, log parameters, etc.
+;;
 (ns ring.middleware.logger
   (require
    [clj-logging-config.log4j :as log-config]
@@ -18,8 +20,11 @@
   (import (org.apache.log4j DailyRollingFileAppender EnhancedPatternLayout FileAppender)))
 
 ;; TODO: Facilities for easily modifying the default log file name and log level
-(def base-log-name "logs/ring.log")
+(def default-log-file "logs/ring.log")
+(def ^:dynamic *ring-log-file* default-log-file)
+
 (def default-log-level :info)
+(def ^:dynamic *ring-log-level* default-log-level)
 
 ;; The generation of the calling class, line numbers, etc. is
 ;; extremely slow, and should be used only in development mode or for
@@ -48,52 +53,54 @@
 ;;
 ;; TODO: Make a custom layout class that colorizes the log level. Maybe this can be done in a filter.
 ;;
-(def rotating-logger
+(defn rotating-logger
   "This logging adapter rotates the logfile nightly at about midnight."
-  (DailyRollingFileAppender.
-   (EnhancedPatternLayout. production-log-prefix-format)
-   base-log-name
-   ".yyyy-MM-dd"))
+  ([logfile]
+     (DailyRollingFileAppender.
+      (EnhancedPatternLayout. production-log-prefix-format)
+      logfile
+      ".yyyy-MM-dd"))
+  ([] (rotating-logger *ring-log-file*)))
 
-(def appending-logger
+(defn appending-logger
   "This logging adapter simply appends new log lines to the existing logfile."
-  (FileAppender.
-   (EnhancedPatternLayout. production-log-prefix-format)
-   base-log-name
-   true))
+  ([logfile]
+     (FileAppender.
+      (EnhancedPatternLayout. production-log-prefix-format)
+      logfile
+      true))
+  ([] (appending-logger *ring-log-file*)))
 
 (defn set-default-logger!
   ([ns]
        "Allows the ring.middleware.logger backend to log for the given namespace. Call this
-  if you want one particular namespace to share its log backend with ring.middleware.logger.
-
-  If you want your entire application to use the r.m.l backend, use (set-default-root-logger!)"
+  if you want one particular namespace to share its log backend with ring.middleware.logger."
 
      (log-config/set-logger! (str *ns*)
-                             :level default-log-level
-                             :out appending-logger))
+                             :level *ring-log-level*
+                             :out (appending-logger)))
   ([]
      "Allows the ring.middleware.logger backend to log for the calling context's namespace. Call this
-  if you want one particular namespace to share its log backend with ring.middleware.logger.
-
-  If you want your entire application to use the r.m.l backend, use (set-default-root-logger!)"
+  if you want one particular namespace to share its log backend with ring.middleware.logger."
      (set-default-logger! (str *ns*))))
 
 (defn set-default-root-logger!
-  ([loglevel]
-     (log-config/set-loggers! :root
-                             {:level loglevel
-                              :out appending-logger}))
-  ([]
-     "Call this if you want all logging methods in your app to go to
+  "Call this if you want all logging methods in your app to go to
 the ring.middleware.logger logfile by default.
 
 Sets the default logger used by ring.middleware.logger to be the root
 logger for the application."
-     (set-default-root-logger! default-log-level)))
+  ([loglevel logfile]
+     (log-config/set-loggers! :root
+                             {:level loglevel
+                              :out (appending-logger logfile)}))
 
-;; Initialize a logging context for ring.middleware.logger.
-(set-default-logger!)
+  ([loglevel]
+     (log-config/set-loggers! :root
+                             {:level loglevel
+                              :out (appending-logger)}))
+  ([]
+     (set-default-root-logger! default-log-level)))
 
 ;; TODO: Alter this subsystem to contain a predefined map of all
 ;; acceptable fg/bg combinations, since some (e.g. white on yellow)
@@ -121,8 +128,10 @@ logger for the application."
 
 (defn- log4j-pre-logger
   [id
-   {:keys [request-method uri remote-addr query-string] :as req}]
-  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr)))
+   {:keys [request-method uri remote-addr query-string params] :as req}]
+  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr))
+  (if params
+    (log/info (str "[" (format-id id) "]  \\ - - - -  Params: " params))))
 
 (defn- log4j-colorless-pre-logger
   [id request]
@@ -131,7 +140,7 @@ logger for the application."
 
 (defn- log4j-post-logger
   [id
-   {:keys [request-method uri remote-addr] :as req}
+   {:keys [request-method uri remote-addr query-string] :as req}
    {:keys [status] :as resp}
    totaltime]
   "Log4J logformatter; logs data about a finished request.
@@ -165,7 +174,7 @@ Sends all log messages at \"info\" level to the Log4J logging
                          (catch Exception e (or status "???")))
         log-message (str
                      "[" colorid "] "
-                     "Finished " request-method " " uri " for " remote-addr " in (" colortime " ms)"
+                     "Finished " request-method " " uri  (if query-string (str "?" query-string)) " for " remote-addr " in (" colortime " ms)"
                      " Status: " colorstatus
                      ) ]
 
@@ -238,13 +247,17 @@ it.
 
 
 (defn wrap-with-logger
-  ([handler]
-     "Adds logging using the prepackaged default loggers."
-     (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger)))
+  "Returns a Ring middleware handler which uses the prepackaged color loggers."
+  ([handler logfile]
+     (set-default-root-logger! *ring-log-level* logfile)
+     (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger))
+  ([handler] (wrap-with-logger handler *ring-log-file*)))
 
 (defn wrap-with-plaintext-logger
-  ([handler]
-     "Adds logging using the ANSI-colorless prepackaged default loggers."
-     (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger)))
+  "Returns a Ring middleware handler which uses the ANSI-colorless prepackaged loggers."
+  ([handler logfile]
+     (set-default-root-logger! *ring-log-level* logfile)
+     (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger))
+  ([handler] (wrap-with-plaintext-logger handler *ring-log-file*)))
 
 
