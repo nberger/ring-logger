@@ -13,18 +13,13 @@
 ;;
 (ns ring.middleware.logger
   (require
-   [clj-logging-config.log4j :as log-config]
-   [clojure.tools.logging :as log]
+   [onelog.core :as log]
    [clansi.core :as ansi]
-   )
-  (import (org.apache.log4j DailyRollingFileAppender EnhancedPatternLayout FileAppender)))
+   ))
 
 ;; TODO: Facilities for easily modifying the default log file name and log level
-(def default-log-file "logs/ring.log")
-(def ^:dynamic *ring-log-file* default-log-file)
-
-(def default-log-level :info)
-(def ^:dynamic *ring-log-level* default-log-level)
+(def ^:dynamic *ring-log-file* "logs/ring.log")
+(def ^:dynamic *ring-log-level* :info)
 
 ;; The generation of the calling class, line numbers, etc. is
 ;; extremely slow, and should be used only in development mode or for
@@ -43,64 +38,7 @@
 (def production-log-prefix-format "%d [%p] : %throwable%m%n")
 
 
-;; Some basic logging adapters.
-;; Many other logging infrastructures are possible. There are syslog
-;; adapters, network socket adapters, etc.
-;; For more information, see:
-;; - https://github.com/malcolmsparks/clj-logging-config
-;; - http://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/AppenderSkeleton.html for different log destinations
-;; - http://logging.apache.org/log4j/companions/extras/apidocs/org/apache/log4j/EnhancedPatternLayout.html for prefix formatting options
-;;
-;; TODO: Make a custom layout class that colorizes the log level. Maybe this can be done in a filter.
-;;
-(defn rotating-logger
-  "This logging adapter rotates the logfile nightly at about midnight."
-  ([logfile]
-     (DailyRollingFileAppender.
-      (EnhancedPatternLayout. production-log-prefix-format)
-      logfile
-      ".yyyy-MM-dd"))
-  ([] (rotating-logger *ring-log-file*)))
 
-(defn appending-logger
-  "This logging adapter simply appends new log lines to the existing logfile."
-  ([logfile]
-     (FileAppender.
-      (EnhancedPatternLayout. production-log-prefix-format)
-      logfile
-      true))
-  ([] (appending-logger *ring-log-file*)))
-
-(defn set-default-logger!
-  ([ns]
-       "Allows the ring.middleware.logger backend to log for the given namespace. Call this
-  if you want one particular namespace to share its log backend with ring.middleware.logger."
-
-     (log-config/set-logger! (str *ns*)
-                             :level *ring-log-level*
-                             :out (appending-logger)))
-  ([]
-     "Allows the ring.middleware.logger backend to log for the calling context's namespace. Call this
-  if you want one particular namespace to share its log backend with ring.middleware.logger."
-     (set-default-logger! (str *ns*))))
-
-(defn set-default-root-logger!
-  "Call this if you want all logging methods in your app to go to
-the ring.middleware.logger logfile by default.
-
-Sets the default logger used by ring.middleware.logger to be the root
-logger for the application."
-  ([loglevel logfile]
-     (log-config/set-loggers! :root
-                             {:level loglevel
-                              :out (appending-logger logfile)}))
-
-  ([loglevel]
-     (log-config/set-loggers! :root
-                             {:level loglevel
-                              :out (appending-logger)}))
-  ([]
-     (set-default-root-logger! default-log-level)))
 
 ;; TODO: Alter this subsystem to contain a predefined map of all
 ;; acceptable fg/bg combinations, since some (e.g. white on yellow)
@@ -249,14 +187,14 @@ it.
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers."
   ([handler logfile]
-     (set-default-root-logger! *ring-log-level* logfile)
+     (log/start! logfile *ring-log-level*)
      (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger))
   ([handler] (wrap-with-logger handler *ring-log-file*)))
 
 (defn wrap-with-plaintext-logger
   "Returns a Ring middleware handler which uses the ANSI-colorless prepackaged loggers."
   ([handler logfile]
-     (set-default-root-logger! *ring-log-level* logfile)
+     (log/start! logfile *ring-log-level*)
      (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger))
   ([handler] (wrap-with-plaintext-logger handler *ring-log-file*)))
 
