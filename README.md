@@ -4,13 +4,14 @@ ring.middleware.logger
 Ring middleware to log each request using Log4J.
 
 This is ALPHA software; the internals and API can change at any time.
+Pull requests are welcome!
 
 Usage
 -----
 
 In your `project.clj`, add the following dependency:
 
-    [ring.middleware.logger "0.2.3-SNAPSHOT"]
+    [ring.middleware.logger "0.4.0"]
 
 
 Then, just add the middleware to your stack. It comes preconfigured with
@@ -84,5 +85,5 @@ beginning of the line) for further customization. Take a look at
 License
 -------
 ring.middleware.logger is by Paul Legato.
-Copyright (C) 2012 Spring Semantics Inc.
+Copyright (C) 2012-2013 Paul Legato.
 Distributed under the Eclipse Public License, the same as Clojure.
