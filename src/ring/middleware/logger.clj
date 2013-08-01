@@ -190,13 +190,12 @@ it.
    suppress-log-initialization prevents the creation of superfluous stub
    logfiles in environments where some other code has already
    initialized the logger, such as in an Immutant container."
-  ([handler logfile suppress-log-initialization]
-     (if-not suppress-log-initialization
+  ([handler logfile]
+     (if logfile
        (log/start! logfile *ring-log-level*))
      (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger))
 
-  ([handler] (wrap-with-logger handler *ring-log-file*))
-  ([handler logfile] (wrap-with-logger handler *ring-log-file* (System/getenv "RING_MIDDLEWARE_LOGGER_SUPPRESS_LOG_INIT"))))
+  ([handler] (wrap-with-logger handler *ring-log-file*)))
 
 (defn wrap-with-plaintext-logger
   "Returns a Ring middleware handler which uses the ANSI-colorless prepackaged loggers.
@@ -204,11 +203,11 @@ it.
    suppress-log-initialization prevents the creation of superfluous stub
    logfiles in environments where some other code has already
    initialized the logger, such as in an Immutant container."
-  ([handler logfile suppress-log-initialization]
-     (if-not suppress-log-initialization
+  ([handler logfile]
+     (if logfile
        (log/start! logfile *ring-log-level*))
      (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger))
-  ([handler] (wrap-with-plaintext-logger handler *ring-log-file*))
-  ([handler logfile] (wrap-with-plaintext-logger handler *ring-log-file* (System/getenv "RING_MIDDLEWARE_LOGGER_SUPPRESS_LOG_INIT"))))
+
+  ([handler] (wrap-with-plaintext-logger handler *ring-log-file*)))
 
 
