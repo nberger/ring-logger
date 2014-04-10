@@ -1,43 +1,10 @@
-;;
-;; ring.middleware.logger by Paul Legato.
-;; Copyright (C) 2012 Spring Semantics, Inc.
-;;
-;;
-;; The use and distribution terms for this software are covered by the
-;; Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php).
-;; By using this software in any fashion, you are agreeing to be bound
-;; by the terms of this license. You must not remove this notice, or
-;; any other, from this software.
-;;
-;; TODO: Configurable logging granularity; e.g. log request start/stop, log parameters, etc.
-;;
 (ns ring.middleware.logger
+  "Ring middleware that logs information about each request to a given
+  set of generic logging functions."
   (require
    [clojure.java.io]
-   [onelog.core :as log]
-   [clansi.core :as ansi]
-   ))
-
-;; TODO: Facilities for easily modifying the default log file name and log level
-(def ^:dynamic *ring-log-file* "logs/ring.log")
-(def ^:dynamic *ring-log-level* :info)
-
-;; The generation of the calling class, line numbers, etc. is
-;; extremely slow, and should be used only in development mode or for
-;; debugging. Production code should not log that information if
-;; performance is an issue. See
-;; http://logging.apache.org/log4j/companions/extras/apidocs/org/apache/log4j/EnhancedPatternLayout.html
-;; for information on which fields are slow.
-;;
-;; TODO: Make these functions, somehow, so that it can alter the
-;; spacing dynamically; e.g. if an %x (execution context message) is
-;; present, log it, otherwise ignore it. Putting a %x in prints "null"
-;; to the log if none is set, which we don't want, which is why it's
-;; not here now.
-;;
-(def debugging-log-prefix-format "%d %l [%p] : %throwable%m%n")
-(def production-log-prefix-format "%d [%p] : %throwable%m%n")
-
+   [clojure.tools.logging]
+   [clansi.core :as ansi]))
 
 
 
@@ -51,6 +18,7 @@
 (def id-foreground-colors (keys id-colorizations))
 (def id-colorization-count (count id-foreground-colors))
 
+
 (defn- get-colorization
   [id]
   "Returns a consistent colorization for the given id; that is, the
@@ -61,43 +29,45 @@
         background (nth background-possibilities (mod id (- id-colorization-count 1)))]
     [foreground background]))
 
+
 (defn- format-id [id]
   "Returns a standard colorized, printable representation of a request id."
   (apply ansi/style (format "%04x" id) [:bright] (get-colorization id)))
 
-(defn- log4j-pre-logger
-  [id
-   {:keys [request-method uri remote-addr query-string params] :as req}]
-  (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr))
-  (log/debug (str "[" (format-id id) "] Raw request: " (select-keys req [:server-port :server-name :remote-addr :uri 
-                                                                         :query-string :scheme :request-method 
-                                                                         :conent-type :content-length :character-encoding :headers])))
+
+(defn- pre-logger
+  [logger-fns id {:keys [request-method uri remote-addr query-string params] :as req}]
+  ((:info logger-fns) (str "[" id "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr
+                           " - " (dissoc (:headers req) "authorization"))) ;; don't log username/password, if any
+
+  ((:debug logger-fns) (str "[" id "] Request details: " (select-keys req [:server-port :server-name :remote-addr :uri 
+                                                                           :query-string :scheme :request-method 
+                                                                           :conent-type :content-length :character-encoding])))
   (if params
-    (log/info (str "[" (format-id id) "]  \\ - - - -  Params: " params))))
+    ((:info logger-fns) (str "[" id "]  \\ - - - -  Params: " params))))
 
-(defn- log4j-colorless-pre-logger
+
+(defn- colorless-pre-logger
+  "Like pre-logger, but doesn't log any ANSI color codes."
   [id request]
-  "Like log4j-pre-logger, but doesn't log any ANSI color codes."
-  (ansi/without-ansi (log4j-pre-logger id request)))
 
-(defn- log4j-post-logger
-  [id
-   {:keys [request-method uri remote-addr query-string] :as req}
-   {:keys [status] :as resp}
-   totaltime]
-  "Log4J logformatter; logs data about a finished request.
+  (ansi/without-ansi (pre-logger id request)))
+
+
+(defn- post-logger
+  "Logs data about a finished request.
 
 Log messages will be colorized with ANSI escape codes. Use
-log4j-colorless-logger if you want plaintext.
+colorless-logger if you want plaintext.
 
 The id is randomly colorized according to its value, to make it easier
 to visually correlate request/response/exception log sets.
 
-Sends all log messages at \"info\" level to the Log4J logging
-  infrastructure, unless status is >= 500, in which case they are sent
-  as errors."
-  (let [colorid (format-id id)
-        colortime (try (apply ansi/style
+Sends all log messages at \"info\" level to the logging
+infrastructure, unless status is >= 500, in which case they are sent as errors."
+
+  [logger-fns id {:keys [request-method uri remote-addr query-string] :as req}  {:keys [status] :as resp}  totaltime]
+  (let [colortime (try (apply ansi/style
                               (str totaltime)
                               (cond
                                (>= totaltime 1500)  [:bright :red]
@@ -115,37 +85,39 @@ Sends all log messages at \"info\" level to the Log4J logging
                                  :else [:yellow]))
                          (catch Exception e (or status "???")))
         log-message (str
-                     "[" colorid "] "
+                     "[" id "] "
                      "Finished " request-method " " uri  (if query-string (str "?" query-string)) " for " remote-addr " in (" colortime " ms)"
                      " Status: " colorstatus
                      ) ]
 
     (if (and (number? status) (>= status 500))
-      (log/error log-message)
-      (log/info log-message))))
+      ((:error logger-fns) log-message)
+      ((:info logger-fns)  log-message))))
 
-(defn- log4j-colorless-post-logger
+
+(defn- colorless-post-logger
   [id request response totaltime]
-  "Like log4j-post-logger, but doesn't log any ANSI color codes."
-  (ansi/without-ansi (log4j-post-logger id request response totaltime)))
+  "Like post-logger, but doesn't log any ANSI color codes."
+  (ansi/without-ansi (post-logger id request response totaltime)))
 
-(defn- log4j-exception-logger
-  [id
-   {:keys [request-method uri remote-addr] :as request}
-   throwable
-   totaltime]
-  (let [formatted-id (format-id id)]
-    (log/error (str "[" formatted-id "] " (ansi/style "Exception!" :bright :red)  " for " remote-addr " in (" totaltime " ms)"))
-    (log/error throwable (str "- End stacktrace for " formatted-id "-")))) ;; must include a second string argument to make c.t.logging recognize first arg as an exception)
 
-(defn- log4j-colorless-exception-logger
+(defn- exception-logger
+  [id logger-fns {:keys [request-method uri remote-addr] :as request} throwable totaltime]
+  ((:error logger-fns) (str "[" id "] " (ansi/style "Exception!" :bright :red)  " for " remote-addr " in (" totaltime " ms)"))
+  ((:error logger-fns) throwable (str "- End stacktrace for " id "-"))) ;; must include a second string argument to make c.t.logging recognize first arg as an exception)
+
+
+(defn- colorless-exception-logger
   [id request throwable totaltime]
-  "Like log4j-pre-logger, but doesn't log any ANSI color codes."
-  (ansi/without-ansi (log4j-exception-logger id request throwable totaltime)))
+  "Like pre-logger, but doesn't log any ANSI color codes."
+  (ansi/without-ansi (exception-logger id request throwable totaltime)))
 
+;; To make it easy to find this inside the handler for your own
+;; logging, this is a dynamic variable.
+(def ^:dynamic *request-id* nil)
 
 (defn- make-logger-middleware
-  [handler pre-logger post-logger exception-logger]
+  [handler logger-fns pre-logger post-logger exception-logger]
   "Adds logging for requests using the given logger functions.
 
 The convenience function (wrap-with-logger) calls this function with
@@ -172,34 +144,42 @@ it.
 ;; originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
-    (let [id (rand-int 0xffff)
-          start (System/currentTimeMillis)]
-      (try
-        (pre-logger id request)
-        (let [response (handler request)
-              finish (System/currentTimeMillis)
-              total  (- finish start)]
-          (post-logger id request response total)
-          response)
-        (catch Throwable t
-          (let [finish (System/currentTimeMillis)
+    (let [start (System/currentTimeMillis)]
+      (binding [*request-id* (format-id (rand-int 0xffff))]
+        (try
+          (pre-logger logger-fns *request-id* request)
+          (let [response (handler request)
+                finish (System/currentTimeMillis)
                 total  (- finish start)]
-            (exception-logger id request t total))
-          (throw t))))))
+            (post-logger logger-fns *request-id* request response total)
+            response)
+          (catch Throwable t
+            (let [finish (System/currentTimeMillis)
+                  total  (- finish start)]
+              (exception-logger logger-fns *request-id* request t total))
+            (throw t)))))))
+
+
+(def ctl-logging-fns
+  "Default logging functions that use clojure.tools.logging."
+  {:info  (fn [x] (clojure.tools.logging/info x))
+   :debug (fn [x] (clojure.tools.logging/debug x))
+   :error (fn [x] (clojure.tools.logging/error x))
+   :warn  (fn [x] (clojure.tools.logging/warn x))
+   })
 
 
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers.
 
-   suppress-log-initialization prevents the creation of superfluous stub
-   logfiles in environments where some other code has already
-   initialized the logger, such as in an Immutant container."
-  ([handler logfile]
-     (if logfile
-       (log/start! logfile *ring-log-level*))
-     (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger))
+   logger-fns is a map that must include the :info, :debug, and :error keys. 
+   Values are functions that accept a string argument and log it at that level.
+   If it is not given, uses the ones from clojure.tools.logging."
+  ([handler logger-fns]
+     (make-logger-middleware handler logger-fns pre-logger post-logger exception-logger))
 
-  ([handler] (wrap-with-logger handler *ring-log-file*)))
+  ([handler] (wrap-with-logger handler ctl-logging-fns)))
+
 
 (defn wrap-with-plaintext-logger
   "Returns a Ring middleware handler which uses the ANSI-colorless prepackaged loggers.
@@ -207,12 +187,10 @@ it.
    suppress-log-initialization prevents the creation of superfluous stub
    logfiles in environments where some other code has already
    initialized the logger, such as in an Immutant container."
-  ([handler logfile]
-     (if logfile
-       (log/start! logfile *ring-log-level*))
-     (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger))
+  ([handler logger-fns]
+     (make-logger-middleware handler logger-fns colorless-pre-logger colorless-post-logger colorless-exception-logger))
 
-  ([handler] (wrap-with-plaintext-logger handler *ring-log-file*)))
+  ([handler] (wrap-with-plaintext-logger handler ctl-logging-fns)))
 
 
 (defn wrap-with-body-logger
@@ -224,8 +202,8 @@ it.
   This is inefficient, and should only be used for debugging.
 
   TODO: Add request ID."
-  [handler]
+  [handler logger-fns]
   (fn [request]
     (let [body (slurp (:body request))]
-      (log/info  " -- Raw request body: '" body "'")
+      ((:info logger-fns)  " -- Raw request body: '" body "'")
       (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))))))
