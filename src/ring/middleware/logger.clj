@@ -13,6 +13,7 @@
 ;;
 (ns ring.middleware.logger
   (require
+   [clojure.java.io]
    [onelog.core :as log]
    [clansi.core :as ansi]
    ))
@@ -68,6 +69,9 @@
   [id
    {:keys [request-method uri remote-addr query-string params] :as req}]
   (log/info (str "[" (format-id id) "] Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr))
+  (log/debug (str "[" (format-id id) "] Raw request: " (select-keys req [:server-port :server-name :remote-addr :uri 
+                                                                         :query-string :scheme :request-method 
+                                                                         :conent-type :content-length :character-encoding :headers])))
   (if params
     (log/info (str "[" (format-id id) "]  \\ - - - -  Params: " params))))
 
@@ -185,17 +189,43 @@ it.
 
 
 (defn wrap-with-logger
-  "Returns a Ring middleware handler which uses the prepackaged color loggers."
+  "Returns a Ring middleware handler which uses the prepackaged color loggers.
+
+   suppress-log-initialization prevents the creation of superfluous stub
+   logfiles in environments where some other code has already
+   initialized the logger, such as in an Immutant container."
   ([handler logfile]
-     (log/start! logfile *ring-log-level*)
+     (if logfile
+       (log/start! logfile *ring-log-level*))
      (make-logger-middleware handler log4j-pre-logger log4j-post-logger log4j-exception-logger))
+
   ([handler] (wrap-with-logger handler *ring-log-file*)))
 
 (defn wrap-with-plaintext-logger
-  "Returns a Ring middleware handler which uses the ANSI-colorless prepackaged loggers."
+  "Returns a Ring middleware handler which uses the ANSI-colorless prepackaged loggers.
+
+   suppress-log-initialization prevents the creation of superfluous stub
+   logfiles in environments where some other code has already
+   initialized the logger, such as in an Immutant container."
   ([handler logfile]
-     (log/start! logfile *ring-log-level*)
+     (if logfile
+       (log/start! logfile *ring-log-level*))
      (make-logger-middleware handler log4j-colorless-pre-logger  log4j-colorless-post-logger log4j-colorless-exception-logger))
+
   ([handler] (wrap-with-plaintext-logger handler *ring-log-file*)))
 
 
+(defn wrap-with-body-logger
+  "Returns a Ring middleware handler that will log the bodies of any
+  incoming requests by reading them into memory, logging them, and
+  then putting them back into a new InputStream for other handlers to
+  read. 
+
+  This is inefficient, and should only be used for debugging.
+
+  TODO: Add request ID."
+  [handler]
+  (fn [request]
+    (let [body (slurp (:body request))]
+      (log/info  " -- Raw request body: '" body "'")
+      (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))))))
