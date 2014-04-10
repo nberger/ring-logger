@@ -42,8 +42,11 @@
 (defn- pre-logger
   [{:keys [info debug id] :as options}
    {:keys [request-method uri remote-addr query-string params] :as req}]
-  (info (str id "Starting " request-method " " uri (if query-string (str "?" query-string)) " for " remote-addr
-                           " - " (dissoc (:headers req) "authorization"))) ;; don't log username/password, if any
+  (info (str id (ansi/style "Starting " :cyan)
+             request-method " " 
+             uri (if query-string (str "?" query-string)) 
+             " for " remote-addr
+             " " (dissoc (:headers req) "authorization"))) ;; log headers, but don't log username/password, if any
 
   (debug (str id "Request details: " (select-keys req [:server-port :server-name :remote-addr :uri 
                                                        :query-string :scheme :request-method 
@@ -83,7 +86,11 @@ infrastructure, unless status is >= 500, in which case they are sent as errors."
                          (catch Exception e (or status "???")))
         log-message (str
                      id
-                     "Finished " request-method " " uri  (if query-string (str "?" query-string)) " for " remote-addr " in (" colortime " ms)"
+                     (ansi/style "Finished " :cyan)
+                     request-method " " 
+                     uri  (if query-string (str "?" query-string))
+                     " for " remote-addr
+                     " in (" colortime " ms)"
                      " Status: " colorstatus
                      ) ]
 
