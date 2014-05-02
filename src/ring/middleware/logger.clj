@@ -104,8 +104,8 @@ infrastructure, unless status is >= 500, in which case they are sent as errors."
   [{:keys [id error] :as options}
    {:keys [request-method uri remote-addr] :as request}
    throwable totaltime]
-  (error (str id (ansi/style "Exception!" :bright :red)  " for " remote-addr " in (" totaltime " ms)"))
-  (error throwable (str "- End stacktrace for " id "-"))) ;; must include a second string argument to make c.t.logging recognize first arg as an exception)
+  (error (str id (ansi/style "Uncaught exception processing request:" :bright :red)  " for " remote-addr " in (" totaltime " ms) - request was: " request))
+  (error throwable))
 
 
 ;; To make it easy to find this inside the handler for your own
