@@ -99,7 +99,7 @@ infrastructure, unless status is >= 500, in which case they are sent as errors."
    {:keys [request-method uri remote-addr] :as request}
    throwable totaltime]
   (error (str (ansi/style "Uncaught exception processing request:" :bright :red)  " for " remote-addr " in (" totaltime " ms) - request was: " request))
-  (error throwable))
+  (error (log/throwable throwable)))
 
 
 (defn- make-logger-middleware
