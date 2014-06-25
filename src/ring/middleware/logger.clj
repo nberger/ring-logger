@@ -61,8 +61,12 @@ Sends all log messages at \"info\" level to the logging
 infrastructure, unless status is >= 500, in which case they are sent as errors."
 
   [{:keys [error info] :as options}
-   {:keys [request-method uri remote-addr query-string] :as req}  {:keys [status] :as resp}  
+   {:keys [request-method uri remote-addr query-string] :as req}
+   {:keys [status] :as resp}  
    totaltime]
+
+  (log/trace "[ring] Sending response: " resp)
+
   (let [colortime (try (apply ansi/style
                               (str totaltime)
                               (cond
@@ -86,6 +90,10 @@ infrastructure, unless status is >= 500, in which case they are sent as errors."
                          " for " remote-addr
                          " in (" colortime " ms)"
                          " Status: " colorstatus
+
+                         (when (= status 302)
+                           (str " redirect to " (get-in resp [:headers "Location"])))
+
                          ) ]
 
     (if (and (number? status) (>= status 500))
