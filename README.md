@@ -1,7 +1,10 @@
 ring.middleware.logger
 ======================
 
-Ring middleware to log each request using Log4J.
+Ring middleware to log the duration and other details of each request.
+
+The logging backend is pluggable, and defaults to clojure.tools.logging
+if none is given.
 
 This is ALPHA software; the internals and API can change at any time.
 Pull requests are welcome!
@@ -11,25 +14,43 @@ Usage
 
 In your `project.clj`, add the following dependency:
 
-    [ring.middleware.logger "0.4.0"]
+    [ring.middleware.logger "0.5.0-SNAPSHOT"]
 
 
 Then, just add the middleware to your stack. It comes preconfigured with
-reasonable defaults, which append ANSI colorized log messages on each request to `logs/ring.log`.
+reasonable defaults, which append ANSI colorized log messages on each
+request to whatever logger is in use by clojure.tools.logging.
 
-In Noir, setup is as simple as:
+    (ns foo
+      (:require [ring.adapter.jetty     :as jetty]
+                [ring.middleware.logger :as logger]))
 
-    (ns my.web.server
-      (:require
-         [noir.server]
-         [ring.middleware.logger :as logger]))
+    (defn my-ring-app [request]
+         {:status 200
+          :headers {"Content-Type" "text/html"}
+          :body "Hello world!"})
+          
+    (jetty/run-jetty (logger/wrap-with-logger my-ring-app) {:port 8080})
 
-    (defonce logger-middleware (noir.server/add-middleware logger/wrap-with-logger))
-    ;; Then start the server normally
 
-If you'd prefer plaintext logging without the ANSI colors, just use:
+If you'd prefer plaintext logging without the ANSI colors, use
+`wrap-with-plaintext-logger` instead.
 
-    (defonce logger-middleware (nr-server/add-middleware logger/wrap-with-plaintext-logger))
+
+Custom Logger Backend
+-----------------------
+
+You can supply a map of custom logger functions to `wrap-with-logger`,
+which will be used instead of the default `clojure.tools.logging`
+functions. The default map is:
+
+      {:info  (fn [x] (clojure.tools.logging/info x))
+       :debug (fn [x] (clojure.tools.logging/debug x))
+       :error (fn [x] (clojure.tools.logging/error x))
+       :warn  (fn [x] (clojure.tools.logging/warn x))}
+       
+Replace these functions with whatever logging facility you'd like to
+use. Each function should take a string and log it at that log level.
 
 
 What Gets Logged
@@ -50,40 +71,8 @@ by default, for easy visual correlation of log messages while reading
 a log file.
 
 
-Logging Other Data
-------------------
-
-By default, the log backend is set up to log only messages generated
-from the ring.middleware.logger namespace. You can optionally use the
-same log facility used by the logger middleware to log any other data
-you like.
-
-If you want your entire app to log to the ring.middleware.logger backend, call:
-
-     (logger/set-default-root-logger!)
-
-If you only want a particular namespace to be directed to this backend, call
-
-     (logger/set-default-logger! "some.namespace")
-     (logger/set-default-logger!) ;; auto-uses the namespace of the calling context
-
-Then, you can use `clojure.tools.logging` functions normally, e.g.
-
-    (clojure.tools.logging/error "Some error message")
-    (clojure.tools.logging/info "An informational message")
-
-Customization
--------------
-
-Every aspect of the logging can be customized, and a few presets are provided.
-
-You can supply your own logger function and your own prefix
-specification (the part that does the timestamp and log level at the
-beginning of the line) for further customization. Take a look at
-`logger.clj` to see what's available.
 
 License
 -------
-ring.middleware.logger is by Paul Legato.
-Copyright (C) 2012-2013 Paul Legato.
+Copyright (C) 2012-2014 Paul Legato.
 Distributed under the Eclipse Public License, the same as Clojure.
