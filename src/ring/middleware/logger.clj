@@ -200,6 +200,6 @@ middleware has a chance to do something with it.
   This is inefficient, and should only be used for debugging."
   [handler logger-fns]
   (fn [request]
-    (let [body (slurp (:body request))]
+    (let [body ^String (slurp (:body request))]
       ((:info logger-fns)  " -- Raw request body: '" body "'")
       (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))))))
