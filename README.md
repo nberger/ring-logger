@@ -14,7 +14,7 @@ Usage
 
 In your `project.clj`, add the following dependency:
 
-    [ring.middleware.logger "0.5.0-SNAPSHOT"]
+    [ring.middleware.logger "0.5.0"]
 
 
 Then, just add the middleware to your stack. It comes preconfigured with
