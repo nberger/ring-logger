@@ -62,7 +62,7 @@ you want to use a different function to log info and debug messages, you could
 call `wrap-with-logger` like this:
 
 ```clojure
-      (wrap-with-logger my-app
+      (wrap-with-logger my-ring-app
         :info (fn [x] (my.custom.logging/info x))
         :debug (fn [x] (my.custom.logging/debug x)))
 ```
