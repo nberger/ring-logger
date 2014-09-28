@@ -29,7 +29,7 @@ request to whatever logger is in use by clojure.tools.logging.
          {:status 200
           :headers {"Content-Type" "text/html"}
           :body "Hello world!"})
-          
+
     (jetty/run-jetty (logger/wrap-with-logger my-ring-app) {:port 8080})
 
 
@@ -40,17 +40,24 @@ If you'd prefer plaintext logging without the ANSI colors, use
 Custom Logger Backend
 -----------------------
 
-You can supply a map of custom logger functions to `wrap-with-logger`,
-which will be used instead of the default `clojure.tools.logging`
-functions. The default map is:
+You can supply a custom logger functions to `wrap-with-logger` by supplying
+pairs of :<level> <function> as additional arguments.  These will be used
+instead of the default `clojure.tools.logging` functions. The default mapping
+is:
 
-      {:info  (fn [x] (clojure.tools.logging/info x))
-       :debug (fn [x] (clojure.tools.logging/debug x))
-       :error (fn [x] (clojure.tools.logging/error x))
-       :warn  (fn [x] (clojure.tools.logging/warn x))}
-       
-Replace these functions with whatever logging facility you'd like to
-use. Each function should take a string and log it at that log level.
+      :info  (fn [x] (clojure.tools.logging/info x))
+      :debug (fn [x] (clojure.tools.logging/debug x))
+      :error (fn [x] (clojure.tools.logging/error x))
+      :warn  (fn [x] (clojure.tools.logging/warn x))
+
+Replace these functions with whatever logging facility you'd like to use. Each
+function should take a string and log it at that log level.  For example, if
+you want to use a different function to log info and debug messages, you could
+call `wrap-with-logger` like this:
+
+      (wrap-with-logger my-app
+        :info my-info-logger
+        :debug my-debug-logger)
 
 
 What Gets Logged
