@@ -44,8 +44,8 @@ If you'd prefer plaintext logging without the ANSI colors, use
 Custom Logger Backend
 -----------------------
 
-You can supply a custom logger functions to `wrap-with-logger` by supplying
-pairs of `:level custom-logger-fn` as additional arguments.  These will be used
+You can supply custom logger functions to `wrap-with-logger` by supplying pairs
+of `:level custom-logger-fn` as additional arguments.  These will be used
 instead of the default `clojure.tools.logging` functions. The default mapping
 is:
 
@@ -63,8 +63,8 @@ call `wrap-with-logger` like this:
 
 ```clojure
       (wrap-with-logger my-app
-        :info my-info-logger
-        :debug my-debug-logger)
+        :info (fn [x] (my.custom.logging/info x))
+        :debug (fn [x] (my.custom.logging/debug x)))
 ```
 
 
