@@ -86,6 +86,36 @@ by default, for easy visual correlation of log messages while reading
 a log file.
 
 
+Log Levels
+----------
+The logger logs at `INFO` level by default. More verbose information is logged when the logger is at `DEBUG` level. 
+
+Ring.middleware.logger uses
+[OneLog](https://github.com/pjlegato/onelog) internally, so we can use
+OneLog's convenience methods to change the log level:
+
+
+```clojure
+(onelog.core/set-debug!)
+(onelog.core/set-info!)
+(onelog.core/set-warn!)
+```
+
+
+Example Log
+-----------
+
+This is an example of logging at DEBUG level. `af82` is the random ID
+assigned to this particular web request. The actual ID number output
+is ANSI-colorized for easy visual correlation of information related
+to a given request.
+
+````
+2014-09-25 01:46:47,328 (worker-1) [INFO] : (af82) Starting :get /favicon.ico for 127.0.0.1 {"host" "localhost:8090", "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/___.__ (KHTML, like Gecko) Chrome/--.-.----.--- Safari/---.--", "cookie" "ring-session=12345678-1234-1234-1234-1234567890abc", "connection" "keep-alive", "if-modified-since" "Wed, 24 Sep 2014 02:21:59 +0000", "accept" "*/*", "accept-language" "en-US", "accept-encoding" "gzip,deflate,sdch", "dnt" "1"}
+2014-09-25 01:46:47,328 (worker-1) [DEBUG] : (af82) Request details: {:character-encoding "utf8", :content-length 0, :request-method :get, :scheme :http, :query-string nil, :uri "/favicon.ico", :remote-addr "127.0.0.1", :server-name "localhost", :server-port 8090}
+limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finished :get /favicon.ico for 127.0.0.1 in (3 ms) Status: 304
+````
+
 
 License
 -------
