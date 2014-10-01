@@ -6,8 +6,9 @@ Ring middleware to log the duration and other details of each request.
 The logging backend is pluggable, and defaults to clojure.tools.logging
 if none is given.
 
-This is ALPHA software; the internals and API can change at any time.
-Pull requests are welcome!
+This is beta-level software. A number of people are using it in the
+wild. API changes are unlikely at this point. Bugs are possible. Pull
+requests are welcome!
 
 Usage
 -----
