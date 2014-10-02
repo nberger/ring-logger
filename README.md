@@ -42,6 +42,35 @@ If you'd prefer plaintext logging without the ANSI colors, use
 `wrap-with-plaintext-logger` instead.
 
 
+Logging only certain requests
+-----------------------------
+
+If you wish to restrict logging to certain paths (or other
+conditions), combine ring.middleware.logger with its companion
+project,
+[ring.middleware.conditions](https://github.com/pjlegato/ring.middleware.conditional), like so:
+
+```clojure
+(:require [ring.middleware.conditional :as c :refer  [if-url-starts-with
+                                                      if-url-doesnt-start-with
+                                                      if-url-matches
+                                                      if-url-doesnt-match]])
+
+(def my-ring-app
+   (-> handler
+       (if-url-starts-with "/foo" wrap-with-logger)
+
+        ;; Or:
+        ;; (c/if some-test-fn wrap-with-logger)
+        ;; etc. 
+
+       wrap-with-other-handler))
+  
+  ```
+
+Consult the [ring.middleware.conditions docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
+
+
 Custom Logger Backend
 -----------------------
 
