@@ -48,7 +48,7 @@ Logging only certain requests
 If you wish to restrict logging to certain paths (or other
 conditions), combine ring.middleware.logger with its companion
 project,
-[ring.middleware.conditions](https://github.com/pjlegato/ring.middleware.conditional), like so:
+[ring.middleware.conditional](https://github.com/pjlegato/ring.middleware.conditional), like so:
 
 ```clojure
 (:require [ring.middleware.conditional :as c :refer  [if-url-starts-with
@@ -68,7 +68,7 @@ project,
   
   ```
 
-Consult the [ring.middleware.conditions docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
+Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
 
 
 Custom Logger Backend
