@@ -38,10 +38,6 @@ request to whatever logger is in use by clojure.tools.logging.
 ```
 
 
-If you'd prefer plaintext logging without the ANSI colors, use
-`wrap-with-plaintext-logger` instead.
-
-
 Logging only certain requests
 -----------------------------
 
