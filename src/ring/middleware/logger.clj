@@ -49,7 +49,7 @@
 
   (debug (str "Request details: " (select-keys req [:server-port :server-name :remote-addr :uri 
                                                        :query-string :scheme :request-method 
-                                                       :conent-type :content-length :character-encoding])))
+                                                       :content-type :content-length :character-encoding])))
   (if params
     (info (str "  \\ - - - -  Params: " params))))
 
