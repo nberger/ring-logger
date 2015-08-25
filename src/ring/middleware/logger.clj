@@ -2,7 +2,6 @@
   "Ring middleware that logs information about each request to a given
   set of generic logging functions."
   (:require
-   [org.tobereplaced (mapply :refer [mapply])]
    [clojure.java.io]
    [ring.middleware.logger.tools-logging :refer [make-tools-logging-logger]]
    [ring.middleware.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]
