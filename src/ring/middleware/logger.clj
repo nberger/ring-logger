@@ -4,39 +4,9 @@
   (:require
    [org.tobereplaced (mapply :refer [mapply])]
    [clojure.java.io]
-   [ring.middleware.logger.protocols :refer [Logger error info warn debug trace]]
-   [clj-logging-config.log4j :as log-config]
    [ring.middleware.logger.log4j :refer [make-onelog-logger]]
+   [ring.middleware.logger.protocols :refer [Logger error info warn debug trace add-extra-middleware]]
    [clansi.core :as ansi]))
-
-
-
-;; TODO: Alter this subsystem to contain a predefined map of all
-;; acceptable fg/bg combinations, since some (e.g. white on yellow)
-;; are practically illegible.
-(def id-colorizations
-  "Foreground / background color codes allowable for random ID colorization."
-  {:white :bg-white :black :bg-black :red :bg-red :green :bg-green :blue :bg-blue :yellow :bg-yellow :magenta :bg-magenta :cyan :bg-cyan} )
-
-(def id-foreground-colors (keys id-colorizations))
-(def id-colorization-count (count id-foreground-colors))
-
-
-(defn- get-colorization
-  [id]
-  "Returns a consistent colorization for the given id; that is, the
-  same ID produces the same color pattern. The colorization will have
-  distinct foreground and background colors."
-  (let [foreground (nth id-foreground-colors (mod id id-colorization-count))
-        background-possibilities (vals (dissoc id-colorizations foreground))
-        background (nth background-possibilities (mod id (- id-colorization-count 1)))]
-    [foreground background]))
-
-
-(defn- format-id [id]
-  "Returns a standard colorized, printable representation of a request id."
-  (if id
-    (apply ansi/style (format "%04x" id) [:bright] (get-colorization id))))
 
 
 (defn- pre-logger
@@ -140,30 +110,29 @@ middleware has a chance to do something with it.
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
     (let [start (:logger-start-time request)]
-      (log-config/with-logging-context (format-id (rand-int 0xffff))
-        (try
-          (pre-logger options
-                      request)
+      (try
+        (pre-logger options
+                    request)
 
-          (let [response (handler request)
-                finish (System/currentTimeMillis)
+        (let [response (handler request)
+              finish (System/currentTimeMillis)
+              total  (- finish start)]
+
+          (post-logger options
+                       request
+                       response
+                       total)
+
+          response)
+
+        (catch Throwable t
+          (let [finish (System/currentTimeMillis)
                 total  (- finish start)]
-
-            (post-logger options
-                         request
-                         response
-                         total)
-
-            response)
-
-          (catch Throwable t
-            (let [finish (System/currentTimeMillis)
-                  total  (- finish start)]
-              (exception-logger options
-                                request
-                                t
-                                total))
-            (throw t)))))))
+            (exception-logger options
+                              request
+                              t
+                              total))
+          (throw t))))))
 
 
 (defn make-default-options
@@ -192,9 +161,14 @@ middleware has a chance to do something with it.
    Values are functions that accept a string argument and log it at that level.
    Uses OneLog to log if none are supplied."
   ([handler & {:keys [logger-impl] :as options}]
-     (mapply (partial make-logger-middleware (wrap-request-start handler))
-                             (merge (make-default-options logger-impl)
-                                    options))))
+   (let [options (merge (make-default-options logger-impl)
+                        options)
+         logger-impl (:logger-impl options)
+         handler (-> handler
+                     wrap-request-start
+                     (add-extra-middleware logger-impl))])
+     (mapply (partial make-logger-middleware handler)
+             options)))
 
 
 
