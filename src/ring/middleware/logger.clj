@@ -139,7 +139,7 @@ middleware has a chance to do something with it.
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
-    (let [start (System/currentTimeMillis)]
+    (let [start (:logger-start-time request)]
       (log-config/with-logging-context (format-id (rand-int 0xffff))
         (try
           (pre-logger options
@@ -177,6 +177,11 @@ middleware has a chance to do something with it.
    :exception-logger exception-logger
    })
 
+(defn wrap-request-start [handler]
+  (fn [request]
+    (->> (System/currentTimeMillis)
+         (assoc request :logger-start-time)
+         handler)))
 
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers.
@@ -185,7 +190,7 @@ middleware has a chance to do something with it.
    Values are functions that accept a string argument and log it at that level.
    Uses OneLog to log if none are supplied."
   ([handler & {:as options}]
-     (mapply (partial make-logger-middleware handler)
+     (mapply (partial make-logger-middleware (wrap-request-start handler))
                              (merge default-options
                                     options))))
 
