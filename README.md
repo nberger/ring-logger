@@ -16,7 +16,7 @@ Usage
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring.middleware.logger "0.5.0"]
+    [ring.middleware.logger "0.5.0" :exclusions [com.taoensso/timbre onelog]]
 ```
 
 
@@ -37,6 +37,63 @@ request to whatever logger is in use by clojure.tools.logging.
     (jetty/run-jetty (logger/wrap-with-logger my-ring-app) {:port 8080})
 ```
 
+Usage with onelog
+-----------------
+
+In your `project.clj`, add the following dependency:
+
+```clojure
+    [ring.middleware.logger "0.5.0" :exclusions [com.taoensso/timbre]]
+```
+
+
+Add the middleware to your stack, using the onelog implementation. It's similar to
+using the default tools.logging implementation, but passing the onelog impl when
+adding the middleware:
+
+```clojure
+    (ns foo
+      (:require [ring.adapter.jetty     :as jetty]
+                [ring.middleware.logger :as logger]
+                [ring.middleware.logger.onelog :refer [make-onelog-logger]))
+
+    (defn my-ring-app [request]
+         {:status 200
+          :headers {"Content-Type" "text/html"}
+          :body "Hello world!"})
+
+    (jetty/run-jetty (logger/wrap-with-logger my-ring-app
+                                              :logger-impl (make-onelog-logger)
+                     {:port 8080})
+
+Usage with timbre
+-----------------
+
+In your `project.clj`, add the following dependency:
+
+```clojure
+    [ring.middleware.logger "0.5.0" :exclusions [onelog]]
+```
+
+
+Add the middleware to your stack, using the timbre implementation. It's similar to
+using the default tools.logging implementation, but passing the timbre impl when
+adding the middleware:
+
+```clojure
+    (ns foo
+      (:require [ring.adapter.jetty     :as jetty]
+                [ring.middleware.logger :as logger]
+                [ring.middleware.logger.timbre :refer [make-timbre-logger]))
+
+    (defn my-ring-app [request]
+         {:status 200
+          :headers {"Content-Type" "text/html"}
+          :body "Hello world!"})
+
+    (jetty/run-jetty (logger/wrap-with-logger my-ring-app
+                                              :logger-impl (make-timbre-logger)
+                     {:port 8080})
 
 Logging only certain requests
 -----------------------------
