@@ -4,8 +4,8 @@
   (:require
    [org.tobereplaced (mapply :refer [mapply])]
    [clojure.java.io]
-   [ring.middleware.logger.log4j :refer [make-onelog-logger]]
-   [ring.middleware.logger.protocols :refer [Logger error info warn debug trace add-extra-middleware]]
+   [ring.middleware.logger.tools-logging :refer [make-tools-logging-logger]]
+   [ring.middleware.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]
    [clansi.core :as ansi]))
 
 
@@ -73,15 +73,15 @@ infrastructure, unless status is >= 500, in which case they are sent as errors."
 
 
 (defn- exception-logger
-  [{:keys [error] :as options}
+  [{:keys [error error-with-ex] :as options}
    {:keys [request-method uri remote-addr] :as request}
    throwable totaltime]
   (error (str (ansi/style "Uncaught exception processing request:" :bright :red)  " for " remote-addr " in (" totaltime " ms) - request was: " request))
-  (error throwable ""))
+  (error-with-ex throwable ""))
 
 
 (defn- make-logger-middleware
-  [handler & {:keys [wrap-log-request-fn pre-logger post-logger exception-logger] :as options}]
+  [handler {:keys [pre-logger post-logger exception-logger] :as options}]
   "Adds logging for requests using the given logger functions.
 
 The convenience function (wrap-with-logger) calls this function with
@@ -138,21 +138,24 @@ middleware has a chance to do something with it.
 (defn make-default-options
   "Default logging functions."
   [logger-impl]
-  (let [logger-impl (or logger-impl (make-onelog-logger))]
-    {:info  (partial info logger-impl)
-     :debug (partial debug logger-impl)
-     :error (partial error logger-impl)
-     :warn  (partial warn logger-impl)
-     :trace  (partial trace logger-impl)
+  (let [logger-impl (or logger-impl (make-tools-logging-logger))]
+    {:logger-impl logger-impl
+     :info  #(info logger-impl %)
+     :debug #(debug logger-impl %)
+     :error #(error logger-impl %)
+     :error-with-ex #(error-with-ex logger-impl %1 %2)
+     :warn  #(warn logger-impl %)
+     :trace #(trace logger-impl %)
      :pre-logger pre-logger
      :post-logger post-logger
      :exception-logger exception-logger}))
 
 (defn wrap-request-start [handler]
   (fn [request]
-    (->> (System/currentTimeMillis)
-         (assoc request :logger-start-time)
-         handler)))
+    (let [now (System/currentTimeMillis)]
+      (->> now
+           (assoc request :logger-start-time)
+           handler))))
 
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers.
@@ -163,12 +166,11 @@ middleware has a chance to do something with it.
   ([handler & {:keys [logger-impl] :as options}]
    (let [options (merge (make-default-options logger-impl)
                         options)
-         logger-impl (:logger-impl options)
-         handler (-> handler
-                     wrap-request-start
-                     (add-extra-middleware logger-impl))])
-     (mapply (partial make-logger-middleware handler)
-             options)))
+         logger-impl (:logger-impl options)]
+     (-> handler
+         (make-logger-middleware options)
+         (#(add-extra-middleware logger-impl %))
+         wrap-request-start))))
 
 
 
