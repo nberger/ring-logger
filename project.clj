@@ -1,4 +1,4 @@
-(defproject ring.middleware.logger "0.5.1-SNAPSHOT"
+(defproject ring.middleware.logger "0.6.0-SNAPSHOT"
   :description "Ring middleware to log each request."
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojars.pjlegato/clansi "1.3.0"]
