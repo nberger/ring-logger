@@ -2,40 +2,10 @@
   "Ring middleware that logs information about each request to a given
   set of generic logging functions."
   (:require
-   [org.tobereplaced (mapply :refer [mapply])]
    [clojure.java.io]
-   [onelog.core :as log]
-   [clj-logging-config.log4j :as log-config]
+   [ring.middleware.logger.tools-logging :refer [make-tools-logging-logger]]
+   [ring.middleware.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]
    [clansi.core :as ansi]))
-
-
-
-;; TODO: Alter this subsystem to contain a predefined map of all
-;; acceptable fg/bg combinations, since some (e.g. white on yellow)
-;; are practically illegible.
-(def id-colorizations
-  "Foreground / background color codes allowable for random ID colorization."
-  {:white :bg-white :black :bg-black :red :bg-red :green :bg-green :blue :bg-blue :yellow :bg-yellow :magenta :bg-magenta :cyan :bg-cyan} )
-
-(def id-foreground-colors (keys id-colorizations))
-(def id-colorization-count (count id-foreground-colors))
-
-
-(defn- get-colorization
-  [id]
-  "Returns a consistent colorization for the given id; that is, the
-  same ID produces the same color pattern. The colorization will have
-  distinct foreground and background colors."
-  (let [foreground (nth id-foreground-colors (mod id id-colorization-count))
-        background-possibilities (vals (dissoc id-colorizations foreground))
-        background (nth background-possibilities (mod id (- id-colorization-count 1)))]
-    [foreground background]))
-
-
-(defn- format-id [id]
-  "Returns a standard colorized, printable representation of a request id."
-  (if id
-    (apply ansi/style (format "%04x" id) [:bright] (get-colorization id))))
 
 
 (defn- pre-logger
@@ -60,12 +30,12 @@
 Sends all log messages at \"info\" level to the logging
 infrastructure, unless status is >= 500, in which case they are sent as errors."
 
-  [{:keys [error info] :as options}
+  [{:keys [error info trace] :as options}
    {:keys [request-method uri remote-addr query-string] :as req}
    {:keys [status] :as resp}  
    totaltime]
 
-  (log/trace "[ring] Sending response: " resp)
+  (trace (str "[ring] Sending response: " resp))
 
   (let [colortime (try (apply ansi/style
                               (str totaltime)
@@ -101,17 +71,16 @@ infrastructure, unless status is >= 500, in which case they are sent as errors."
       (info  log-message))))
 
 
-
 (defn- exception-logger
-  [{:keys [error] :as options}
+  [{:keys [error error-with-ex] :as options}
    {:keys [request-method uri remote-addr] :as request}
    throwable totaltime]
   (error (str (ansi/style "Uncaught exception processing request:" :bright :red)  " for " remote-addr " in (" totaltime " ms) - request was: " request))
-  (error (log/throwable throwable)))
+  (error-with-ex throwable ""))
 
 
 (defn- make-logger-middleware
-  [handler & {:keys [pre-logger post-logger exception-logger] :as options}]
+  [handler {:keys [pre-logger post-logger exception-logger] :as options}]
   "Adds logging for requests using the given logger functions.
 
 The convenience function (wrap-with-logger) calls this function with
@@ -139,55 +108,68 @@ middleware has a chance to do something with it.
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
-    (let [start (System/currentTimeMillis)]
-      (log-config/with-logging-context (format-id (rand-int 0xffff))
-        (try
-          (pre-logger options
-                      request)
+    (let [start (:logger-start-time request)]
+      (try
+        (pre-logger options
+                    request)
 
-          (let [response (handler request)
-                finish (System/currentTimeMillis)
+        (let [response (handler request)
+              finish (System/currentTimeMillis)
+              total  (- finish start)]
+
+          (post-logger options
+                       request
+                       response
+                       total)
+
+          response)
+
+        (catch Throwable t
+          (let [finish (System/currentTimeMillis)
                 total  (- finish start)]
-
-            (post-logger options
-                         request
-                         response
-                         total)
-
-            response)
-
-          (catch Throwable t
-            (let [finish (System/currentTimeMillis)
-                  total  (- finish start)]
-              (exception-logger options
-                                request
-                                t
-                                total))
-            (throw t)))))))
+            (exception-logger options
+                              request
+                              t
+                              total))
+          (throw t))))))
 
 
-(def default-options
+(defn make-default-options
   "Default logging functions."
-  {:info  (fn [x] (log/info x))
-   :debug (fn [x] (log/debug x))
-   :error (fn [x] (log/error x))
-   :warn  (fn [x] (log/warn x))
-   :pre-logger pre-logger
-   :post-logger post-logger
-   :exception-logger exception-logger
-   })
+  [logger-impl]
+  (let [logger-impl (or logger-impl (make-tools-logging-logger))]
+    {:logger-impl logger-impl
+     :info  #(info logger-impl %)
+     :debug #(debug logger-impl %)
+     :error #(error logger-impl %)
+     :error-with-ex #(error-with-ex logger-impl %1 %2)
+     :warn  #(warn logger-impl %)
+     :trace #(trace logger-impl %)
+     :pre-logger pre-logger
+     :post-logger post-logger
+     :exception-logger exception-logger}))
 
+(defn wrap-request-start [handler]
+  (fn [request]
+    (let [now (System/currentTimeMillis)]
+      (->> now
+           (assoc request :logger-start-time)
+           handler))))
 
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers.
 
-   Options may include the :info, :debug, and :error keys.
+   Options may include the :logger-impl, :info, :debug, :trace and :error keys.
    Values are functions that accept a string argument and log it at that level.
    Uses OneLog to log if none are supplied."
-  ([handler & {:as options}]
-     (mapply (partial make-logger-middleware handler)
-                             (merge default-options
-                                    options))))
+  ([handler & {:keys [logger-impl] :as options}]
+   (let [options (merge (make-default-options logger-impl)
+                        options)
+         logger-impl (:logger-impl options)]
+     (-> handler
+         (make-logger-middleware options)
+         (#(add-extra-middleware logger-impl %))
+         wrap-request-start))))
 
 
 
