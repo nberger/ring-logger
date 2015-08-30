@@ -1,8 +1,8 @@
-(ns ring.middleware.logger.timbre-test
+(ns ring.logger.timbre-test
   (:require [clojure.test :refer :all]
             [taoensso.timbre :as timbre]
-            [ring.middleware.logger.timbre :refer [make-timbre-logger]]
-            [ring.middleware.logger :refer [wrap-with-logger]]
+            [ring.logger.timbre :refer [make-timbre-logger]]
+            [ring.logger :refer [wrap-with-logger]]
             [ring.mock.request :as mock]))
 
 (def ^{:dynamic true} *entries* (atom []))

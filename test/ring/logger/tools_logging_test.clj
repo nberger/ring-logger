@@ -1,8 +1,8 @@
-(ns ring.middleware.logger.tools-logging-test
+(ns ring.logger.tools-logging-test
   (:require [clojure.test :refer :all]
             [clojure.tools.logging :refer :all]
             [clojure.tools.logging.impl :as impl]
-            [ring.middleware.logger :refer [wrap-with-logger]]
+            [ring.logger :refer [wrap-with-logger]]
             [ring.mock.request :as mock]))
 
 (def ^{:dynamic true} *entries* (atom []))

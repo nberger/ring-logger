@@ -1,6 +1,6 @@
-(ns ring.middleware.logger.timbre
+(ns ring.logger.timbre
   (:require [taoensso.timbre :as log]
-            [ring.middleware.logger.protocols :refer [Logger]]))
+            [ring.logger.protocols :refer [Logger]]))
 
 (defrecord TimbreLogger []
   Logger

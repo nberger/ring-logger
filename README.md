@@ -29,7 +29,7 @@ request to whatever logger is in use by clojure.tools.logging.
 ```clojure
     (ns foo
       (:require [ring.adapter.jetty     :as jetty]
-                [ring.middleware.logger :as logger]))
+                [ring.logger :as logger]))
 
     (defn my-ring-app [request]
          {:status 200
@@ -45,7 +45,7 @@ Usage with onelog
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [com.nberger/ring.middleware.logger "0.6.0-SNAPSHOT" :exclusions [com.taoensso/timbre]]
+    [ring-logger "0.6.0-SNAPSHOT" :exclusions [com.taoensso/timbre]]
 ```
 
 Add the middleware to your stack, using the onelog implementation. It's similar to
@@ -55,8 +55,8 @@ adding the middleware:
 ```clojure
     (ns foo
       (:require [ring.adapter.jetty     :as jetty]
-                [ring.middleware.logger :as logger]
-                [ring.middleware.logger.onelog :refer [make-onelog-logger]))
+                [ring.logger :as logger]
+                [ring.logger.onelog :refer [make-onelog-logger]))
 
     (defn my-ring-app [request]
          {:status 200
@@ -74,7 +74,7 @@ Usage with timbre
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [com.nberger/ring.middleware.logger "0.6.0-SNAPSHOT" :exclusions [onelog]]
+    [ring-logger "0.6.0-SNAPSHOT" :exclusions [onelog]]
 ```
 
 
@@ -85,8 +85,8 @@ adding the middleware:
 ```clojure
     (ns foo
       (:require [ring.adapter.jetty     :as jetty]
-                [ring.middleware.logger :as logger]
-                [ring.middleware.logger.timbre :refer [make-timbre-logger]))
+                [ring.logger :as logger]
+                [ring.logger.timbre :refer [make-timbre-logger]))
 
     (defn my-ring-app [request]
          {:status 200

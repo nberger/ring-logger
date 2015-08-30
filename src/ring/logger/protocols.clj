@@ -1,4 +1,4 @@
-(ns ring.middleware.logger.protocols)
+(ns ring.logger.protocols)
 
 (defprotocol Logger
   (add-extra-middleware [_ handler])

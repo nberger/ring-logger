@@ -1,6 +1,6 @@
-(ns ring.middleware.logger.tools-logging
+(ns ring.logger.tools-logging
   (:require [clojure.tools.logging :as log]
-            [ring.middleware.logger.protocols :refer [Logger]]))
+            [ring.logger.protocols :refer [Logger]]))
 
 (defrecord ToolsLoggingLogger []
   Logger

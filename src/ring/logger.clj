@@ -1,10 +1,10 @@
-(ns ring.middleware.logger
+(ns ring.logger
   "Ring middleware that logs information about each request to a given
   set of generic logging functions."
   (:require
    [clojure.java.io]
-   [ring.middleware.logger.tools-logging :refer [make-tools-logging-logger]]
-   [ring.middleware.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]
+   [ring.logger.tools-logging :refer [make-tools-logging-logger]]
+   [ring.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]
    [clansi.core :as ansi]))
 
 

@@ -1,8 +1,8 @@
-(ns ring.middleware.logger.log4j
+(ns ring.logger.log4j
   (:require [clansi.core :as ansi]
             [clj-logging-config.log4j :as log-config]
             [onelog.core :as log]
-            [ring.middleware.logger.protocols :refer [Logger]]))
+            [ring.logger.protocols :refer [Logger]]))
 
 ;; TODO: Alter this subsystem to contain a predefined map of all
 ;; acceptable fg/bg combinations, since some (e.g. white on yellow)
