@@ -1,4 +1,4 @@
-This project was forked from pjlegato/ring.middleware.logger
+This project was forked from [pjlegato/ring.middleware.logger](http://github.com/pjlegato/ring.middleware.logger)
 
 ring-logger
 ======================
@@ -204,5 +204,7 @@ limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finish
 
 License
 -------
+
 Copyright (C) 2015 Nicolás Berger, 2012-2014 Paul Legato.
+
 Distributed under the Eclipse Public License, the same as Clojure.
