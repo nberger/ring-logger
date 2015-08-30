@@ -1,4 +1,6 @@
-ring.middleware.logger
+This project was forked from pjlegato/ring.middleware.logger
+
+ring-logger
 ======================
 
 Ring middleware to log the duration and other details of each request.
@@ -7,7 +9,7 @@ The logging backend is pluggable, and defaults to clojure.tools.logging
 if none is given.
 
 This is beta-level software. A number of people are using it in the
-wild. API changes are unlikely at this point. Bugs are possible. Pull
+wild. API changes are very likely at this point. Bugs are possible. Pull
 requests are welcome!
 
 Usage
@@ -16,7 +18,7 @@ Usage
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring.middleware.logger "0.5.0" :exclusions [com.taoensso/timbre onelog]]
+    [ring-logger "0.6.0-SNAPSHOT" :exclusions [com.taoensso/timbre onelog]]
 ```
 
 
@@ -43,9 +45,8 @@ Usage with onelog
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring.middleware.logger "0.5.0" :exclusions [com.taoensso/timbre]]
+    [com.nberger/ring.middleware.logger "0.6.0-SNAPSHOT" :exclusions [com.taoensso/timbre]]
 ```
-
 
 Add the middleware to your stack, using the onelog implementation. It's similar to
 using the default tools.logging implementation, but passing the onelog impl when
@@ -65,6 +66,7 @@ adding the middleware:
     (jetty/run-jetty (logger/wrap-with-logger my-ring-app
                                               :logger-impl (make-onelog-logger)
                      {:port 8080})
+```
 
 Usage with timbre
 -----------------
@@ -72,7 +74,7 @@ Usage with timbre
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring.middleware.logger "0.5.0" :exclusions [onelog]]
+    [com.nberger/ring.middleware.logger "0.6.0-SNAPSHOT" :exclusions [onelog]]
 ```
 
 
@@ -94,13 +96,13 @@ adding the middleware:
     (jetty/run-jetty (logger/wrap-with-logger my-ring-app
                                               :logger-impl (make-timbre-logger)
                      {:port 8080})
+```
 
 Logging only certain requests
 -----------------------------
 
 If you wish to restrict logging to certain paths (or other
-conditions), combine ring.middleware.logger with its companion
-project,
+conditions), combine ring-logger with
 [ring.middleware.conditional](https://github.com/pjlegato/ring.middleware.conditional), like so:
 
 ```clojure
@@ -171,9 +173,9 @@ a log file.
 
 Log Levels
 ----------
-The logger logs at `INFO` level by default. More verbose information is logged when the logger is at `DEBUG` level. 
+The logger logs at `INFO` level by default. More verbose information is logged when the logger is at `DEBUG` level.
 
-Ring.middleware.logger uses
+ring-logger uses
 [OneLog](https://github.com/pjlegato/onelog) internally, so we can use
 OneLog's convenience methods to change the log level:
 
@@ -202,5 +204,5 @@ limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finish
 
 License
 -------
-Copyright (C) 2012-2014 Paul Legato.
+Copyright (C) 2015 Nicolás Berger, 2012-2014 Paul Legato.
 Distributed under the Eclipse Public License, the same as Clojure.
