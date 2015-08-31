@@ -5,12 +5,8 @@ ring-logger [![Circle CI](https://circleci.com/gh/nberger/ring-logger.svg?style=
 
 Ring middleware to log the duration and other details of each request.
 
-The logging backend is pluggable, and defaults to clojure.tools.logging
-if none is given.
-
-This is beta-level software. A number of people are using it in the
-wild. API changes are very likely at this point. Bugs are possible. Pull
-requests are welcome!
+The logging backend is pluggable, included implementations: tools.logging (default),
+pjlegato/onelog and taoensso/timbre.
 
 [![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
 
@@ -154,6 +150,9 @@ call `wrap-with-logger` like this:
         :debug (fn [x] (my.custom.logging/debug x)))
 ```
 
+Another possibility is to provide a :logger-impl instance that implements
+the ring.logger.protocols/Logger protocol.
+
 
 What Gets Logged
 ----------------
@@ -166,15 +165,16 @@ errors (i.e. its HTTP status is < 500);
 * an :error level message when a response's HTTP status is >= 500;
 * an :error level message with a stack trace when an exception is thrown during response generation.
 
-All messages are timestamped. Each request is assigned a random
+All messages are timestamped. When the onelog logger is used, each request is assigned a random
 4-hex-digit ID, so that different log messages pertaining to the same
 request can be cross-referenced. These IDs are printed in random ANSI colors
 by default, for easy visual correlation of log messages while reading
 a log file.
 
 
-Log Levels
+Log Levels with OneLog
 ----------
+
 The logger logs at `INFO` level by default. More verbose information is logged when the logger is at `DEBUG` level.
 
 ring-logger uses
@@ -192,7 +192,7 @@ OneLog's convenience methods to change the log level:
 Example Log
 -----------
 
-This is an example of logging at DEBUG level. `af82` is the random ID
+This is an example of logging at DEBUG level with OneLog. `af82` is the random ID
 assigned to this particular web request. The actual ID number output
 is ANSI-colorized for easy visual correlation of information related
 to a given request.
