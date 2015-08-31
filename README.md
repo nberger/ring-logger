@@ -12,6 +12,8 @@ This is beta-level software. A number of people are using it in the
 wild. API changes are very likely at this point. Bugs are possible. Pull
 requests are welcome!
 
+[![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
+
 Usage
 -----
 
