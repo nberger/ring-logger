@@ -215,6 +215,11 @@ Roadmap
     - Remove onelog if we see it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization)
     - Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library
 
+Contributing
+------------
+
+Pull requests are welcome!
+
 License
 -------
 
