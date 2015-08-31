@@ -21,7 +21,7 @@ The migration is pretty straightforward:
 
 To use with Onelog as in r.m.logger (ring-logger doesn't use OneLog by default):
 * Add a require to `[ring.logger.log4j :refer [make-onelog-logger]]`
-* Use the onelog `:logger-impl`: `(wrap-with-logger app :logger-impl (make-onelog-logger))`
+* Use the onelog `:logger-impl`: `(wrap-with-logger app {:logger-impl (make-onelog-logger)})`
 
 Usage
 -----
@@ -76,8 +76,8 @@ adding the middleware:
           :body "Hello world!"})
 
     (jetty/run-jetty (logger/wrap-with-logger my-ring-app
-                                              :logger-impl (make-onelog-logger)
-                     {:port 8080})
+                                              {:logger-impl (make-onelog-logger)}
+                     {:port 8080}))
 ```
 
 Usage with timbre
@@ -107,8 +107,8 @@ adding the middleware:
           :body "Hello world!"})
 
     (jetty/run-jetty (logger/wrap-with-logger my-ring-app
-                                              :logger-impl (make-timbre-logger)
-                     {:port 8080})
+                                              {:logger-impl (make-timbre-logger)}
+                     {:port 8080}))
 ```
 
 Logging only certain requests
@@ -160,8 +160,8 @@ call `wrap-with-logger` like this:
 
 ```clojure
       (wrap-with-logger my-ring-app
-        :info (fn [x] (my.custom.logging/info x))
-        :debug (fn [x] (my.custom.logging/debug x)))
+        {:info (fn [x] (my.custom.logging/info x))
+         :debug (fn [x] (my.custom.logging/debug x))})
 ```
 
 Another possibility is to provide a :logger-impl instance that implements
@@ -203,13 +203,13 @@ and passing a `:printer` option to `wrap-with-logger`, like so:
                                                            :request-method
                                                            :uri]))))
 
-(wrap-with-logger app :printer :my-printer)
+(wrap-with-logger app {:printer :my-printer})
 ```
 
 A `:no-color` printer is provided, so to disable color:
 
 ```
-(wrap-with-logger app :printer :no-color)
+(wrap-with-logger app {:printer :no-color})
 ```
 
 Log Levels with OneLog
