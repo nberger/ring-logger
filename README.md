@@ -16,7 +16,7 @@ Usage
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.0-SNAPSHOT" :exclusions [com.taoensso/timbre onelog]]
+    [ring-logger "0.6.0" :exclusions [com.taoensso/timbre onelog]]
 ```
 
 
@@ -43,7 +43,7 @@ Usage with onelog
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.0-SNAPSHOT" :exclusions [com.taoensso/timbre]]
+    [ring-logger "0.6.0" :exclusions [com.taoensso/timbre]]
 ```
 
 Add the middleware to your stack, using the onelog implementation. It's similar to
@@ -72,7 +72,7 @@ Usage with timbre
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.0-SNAPSHOT" :exclusions [onelog]]
+    [ring-logger "0.6.0" :exclusions [onelog]]
 ```
 
 
