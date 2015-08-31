@@ -172,6 +172,32 @@ by default, for easy visual correlation of log messages while reading
 a log file.
 
 
+Custom messages and how to disable coloring
+-------------------------------------------
+
+Instead of the default messages (for request start, details, exceptions, response trace) you might want to
+provide your own custom messages. That's easy by supplying implementations of the printer multimethods
+like `starting`, `request-details`, `exception` and others (see `ring.logger.messages` ns for more details)
+and passing a `:printer` option to `wrap-with-logger`, like so:
+
+```
+(defmethod request-details :my-printer
+  [{:keys [info trace] :as options} req]
+  (trace (str "detailed request details: " req)
+  (info (str "minimal request details: " (select-keys req [:character-encoding
+                                                           :content-length
+                                                           :request-method
+                                                           :uri]))))
+
+(wrap-with-logger app :printer :my-printer)
+```
+
+A `:no-color` printer is provided, so to disable color:
+
+```
+(wrap-with-logger app :printer :no-color)
+```
+
 Log Levels with OneLog
 ----------
 
