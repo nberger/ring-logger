@@ -10,13 +10,26 @@ pjlegato/onelog and taoensso/timbre.
 
 [![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
 
+
+Migration from ring.middleware.logger
+-------------------------------------
+
+The migration is pretty straightforward:
+
+* Replace dependency in `project.clj` from `[ring.middleware.logger "0.5.0"]` to `[ring-logger "0.6.0"]`
+* Replace the require from `[ring.middleware.logger :as logger]` to `[ring.logger :as logger]`
+
+To use with Onelog as in r.m.logger (ring-logger doesn't use OneLog by default):
+* Add a require to `[ring.logger.log4j :refer [make-onelog-logger]]`
+* Use the onelog `:logger-impl`: `(wrap-with-logger app :logger-impl (make-onelog-logger))`
+
 Usage
 -----
 
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.0" :exclusions [com.taoensso/timbre onelog]]
+    [ring-logger "0.6.0"]
 ```
 
 
@@ -40,10 +53,11 @@ request to whatever logger is in use by clojure.tools.logging.
 Usage with onelog
 -----------------
 
-In your `project.clj`, add the following dependency:
+In your `project.clj`, add the following dependencies:
 
 ```clojure
-    [ring-logger "0.6.0" :exclusions [com.taoensso/timbre]]
+    [ring-logger "0.6.0"]
+    [onelog "0.4.5"]
 ```
 
 Add the middleware to your stack, using the onelog implementation. It's similar to
@@ -52,9 +66,9 @@ adding the middleware:
 
 ```clojure
     (ns foo
-      (:require [ring.adapter.jetty     :as jetty]
+      (:require [ring.adapter.jetty :as jetty]
                 [ring.logger :as logger]
-                [ring.logger.onelog :refer [make-onelog-logger]))
+                [ring.logger.log4j :refer [make-onelog-logger]))
 
     (defn my-ring-app [request]
          {:status 200
@@ -72,7 +86,8 @@ Usage with timbre
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.0" :exclusions [onelog]]
+    [ring-logger "0.6.0"]
+    [com.taoensso/timbre "4.1.1"]
 ```
 
 
@@ -82,7 +97,7 @@ adding the middleware:
 
 ```clojure
     (ns foo
-      (:require [ring.adapter.jetty     :as jetty]
+      (:require [ring.adapter.jetty :as jetty]
                 [ring.logger :as logger]
                 [ring.logger.timbre :refer [make-timbre-logger]))
 
@@ -115,11 +130,10 @@ conditions), combine ring-logger with
 
         ;; Or:
         ;; (c/if some-test-fn wrap-with-logger)
-        ;; etc. 
+        ;; etc.
 
        wrap-with-other-handler))
-  
-  ```
+```
 
 Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
 
