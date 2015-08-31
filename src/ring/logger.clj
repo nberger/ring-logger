@@ -4,79 +4,28 @@
   (:require
    [clojure.java.io]
    [ring.logger.tools-logging :refer [make-tools-logging-logger]]
-   [ring.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]
-   [clansi.core :as ansi]))
-
+   [ring.logger.messages :as messages]
+   [ring.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]))
 
 (defn- pre-logger
-  [{:keys [info debug] :as options}
-   {:keys [request-method uri remote-addr query-string params] :as req}]
-  (info (str (ansi/style "Starting " :cyan)
-             request-method " " 
-             uri (if query-string (str "?" query-string)) 
-             " for " remote-addr
-             " " (dissoc (:headers req) "authorization"))) ;; log headers, but don't log username/password, if any
-
-  (debug (str "Request details: " (select-keys req [:server-port :server-name :remote-addr :uri 
-                                                       :query-string :scheme :request-method 
-                                                       :content-type :content-length :character-encoding])))
-  (if params
-    (info (str "  \\ - - - -  Params: " params))))
-
+  [options req]
+  (messages/starting options req)
+  (messages/request-details options req)
+  (messages/request-params options req))
 
 (defn- post-logger
   "Logs data about a finished request.
 
-Sends all log messages at \"info\" level to the logging
+By default, sends all log messages at \"info\" level to the logging
 infrastructure, unless status is >= 500, in which case they are sent as errors."
-
-  [{:keys [error info trace] :as options}
-   {:keys [request-method uri remote-addr query-string] :as req}
-   {:keys [status] :as resp}  
-   totaltime]
-
-  (trace (str "[ring] Sending response: " resp))
-
-  (let [colortime (try (apply ansi/style
-                              (str totaltime)
-                              (cond
-                               (>= totaltime 1500)  [:bright :red]
-                               (>= totaltime 800)   [:red]
-                               (>= totaltime 500)   [:yellow]
-                               :else :default))
-                       (catch Exception e (or totaltime "??")))
-        
-        colorstatus (try (apply ansi/style
-                                (str status)
-                                (cond
-                                 (< status 300)  [:default] 
-                                 (>= status 500) [:bright :red] 
-                                 (>= status 400) [:red] 
-                                 :else           [:yellow]))
-                         (catch Exception e (or status "???")))
-        log-message (str (ansi/style "Finished " :cyan)
-                         request-method " " 
-                         uri  (if query-string (str "?" query-string))
-                         " for " remote-addr
-                         " in (" colortime " ms)"
-                         " Status: " colorstatus
-
-                         (when (= status 302)
-                           (str " redirect to " (get-in resp [:headers "Location"])))
-
-                         ) ]
-
-    (if (and (number? status) (>= status 500))
-      (error log-message)
-      (info  log-message))))
+  [options req resp totaltime]
+  (messages/sending-response options resp)
+  (messages/finished options req resp totaltime))
 
 
 (defn- exception-logger
-  [{:keys [error error-with-ex] :as options}
-   {:keys [request-method uri remote-addr] :as request}
-   throwable totaltime]
-  (error (str (ansi/style "Uncaught exception processing request:" :bright :red)  " for " remote-addr " in (" totaltime " ms) - request was: " request))
-  (error-with-ex throwable ""))
+  [options req throwable totaltime]
+  (messages/exception options req throwable totaltime))
 
 
 (defn- make-logger-middleware
@@ -159,9 +108,9 @@ middleware has a chance to do something with it.
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers.
 
-   Options may include the :logger-impl, :info, :debug, :trace and :error keys.
+   Options may include :logger-impl, :info, :debug, :trace, :error, :warn & :printer.
    Values are functions that accept a string argument and log it at that level.
-   Uses OneLog to log if none are supplied."
+   Uses tools.logging to log if none are supplied."
   ([handler & {:keys [logger-impl] :as options}]
    (let [options (merge (make-default-options logger-impl)
                         options)
@@ -177,7 +126,7 @@ middleware has a chance to do something with it.
   "Returns a Ring middleware handler that will log the bodies of any
   incoming requests by reading them into memory, logging them, and
   then putting them back into a new InputStream for other handlers to
-  read. 
+  read.
 
   This is inefficient, and should only be used for debugging."
   [handler logger-fns]

@@ -39,7 +39,7 @@
       (is (re-find #"Starting.*get /doc/10 for localhost"
                    (-> entries first (nth 3))))
       (is (re-find #":headers \{:a \"header in the response\"\}"
-                   (-> entries (nth 2) (nth 3))))   
+                   (-> entries (nth 2) (nth 3))))
       (is (re-find #"Finished.*get /doc/10 for localhost in \(\d+ ms\) Status:.*200"
                    (-> entries last (nth 3)))))))
 
@@ -56,6 +56,6 @@
       (is (re-find #"Starting.*get /doc/10 for localhost"
                    (-> entries first (nth 3))))
       (is (re-find #":headers \{:a \"header in the response\"\}"
-                   (-> entries (nth 2) (nth 3))))   
+                   (-> entries (nth 2) (nth 3))))
       (is (re-find #"Finished.*get /doc/10 for localhost in \(\d+ ms\) Status:.*500"
                    (-> entries last (nth 3)))))))
