@@ -1,6 +1,6 @@
 This project was forked from [pjlegato/ring.middleware.logger](http://github.com/pjlegato/ring.middleware.logger)
 
-ring-logger
+ring-logger [![Circle CI](https://circleci.com/gh/nberger/ring-logger.svg?style=svg)](https://circleci.com/gh/nberger/ring-logger)
 ======================
 
 Ring middleware to log the duration and other details of each request.
