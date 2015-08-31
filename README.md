@@ -201,6 +201,17 @@ to a given request.
 limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finished :get /favicon.ico for 127.0.0.1 in (3 ms) Status: 304
 ````
 
+Roadmap
+--------
+
+* 0.6.x
+    - Add support for tools.loggging and timbre, with the possibility to not bring not needed dependencies.
+    - Allow for more customizations (color/no-color, customize specific log messages)
+    - Development: Improve tests, use continuous integration.
+
+* 0.7.x
+    - Remove onelog if we see it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization)
+    - Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library
 
 License
 -------
