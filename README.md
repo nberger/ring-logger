@@ -5,23 +5,15 @@ ring-logger [![Circle CI](https://circleci.com/gh/nberger/ring-logger.svg?style=
 
 Ring middleware to log the duration and other details of each request.
 
-The logging backend is pluggable, included implementations: tools.logging (default),
-pjlegato/onelog and taoensso/timbre.
+The logging backend is pluggable, included implementations: tools.logging (default) and taoensso/timbre.
 
 [![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
 
 
-Migration from ring.middleware.logger
+Migration from ring.middleware.logger (or if you just want to use some OneLog goodies)
 -------------------------------------
 
-The migration is pretty straightforward:
-
-* Replace dependency in `project.clj` from `[ring.middleware.logger "0.5.0"]` to `[ring-logger "0.6.1"]`
-* Replace the require from `[ring.middleware.logger :as logger]` to `[ring.logger :as logger]`
-
-To use with Onelog as in r.m.logger (ring-logger doesn't use OneLog by default):
-* Add a require to `[ring.logger.log4j :refer [make-onelog-logger]]`
-* Use the onelog `:logger-impl`: `(wrap-with-logger app {:logger-impl (make-onelog-logger)})`
+Check out [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog)
 
 Usage
 -----
@@ -50,35 +42,6 @@ request to whatever logger is in use by clojure.tools.logging.
     (jetty/run-jetty (logger/wrap-with-logger my-ring-app) {:port 8080})
 ```
 
-Usage with onelog
------------------
-
-In your `project.clj`, add the following dependencies:
-
-```clojure
-    [ring-logger "0.6.1"]
-    [onelog "0.4.5"]
-```
-
-Add the middleware to your stack, using the onelog implementation. It's similar to
-using the default tools.logging implementation, but passing the onelog impl when
-adding the middleware:
-
-```clojure
-    (ns foo
-      (:require [ring.adapter.jetty :as jetty]
-                [ring.logger :as logger]
-                [ring.logger.log4j :refer [make-onelog-logger]))
-
-    (defn my-ring-app [request]
-         {:status 200
-          :headers {"Content-Type" "text/html"}
-          :body "Hello world!"})
-
-    (jetty/run-jetty (logger/wrap-with-logger my-ring-app
-                                              {:logger-impl (make-onelog-logger)}
-                     {:port 8080}))
-```
 
 Usage with timbre
 -----------------
@@ -179,11 +142,7 @@ errors (i.e. its HTTP status is < 500);
 * an :error level message when a response's HTTP status is >= 500;
 * an :error level message with a stack trace when an exception is thrown during response generation.
 
-All messages are timestamped. When the onelog logger is used, each request is assigned a random
-4-hex-digit ID, so that different log messages pertaining to the same
-request can be cross-referenced. These IDs are printed in random ANSI colors
-by default, for easy visual correlation of log messages while reading
-a log file.
+All messages are timestamped.
 
 
 Custom messages and how to disable coloring
@@ -212,23 +171,6 @@ A `:no-color` printer is provided, so to disable color:
 (wrap-with-logger app {:printer :no-color})
 ```
 
-Log Levels with OneLog
-----------
-
-The logger logs at `INFO` level by default. More verbose information is logged when the logger is at `DEBUG` level.
-
-ring-logger uses
-[OneLog](https://github.com/pjlegato/onelog) internally, so we can use
-OneLog's convenience methods to change the log level:
-
-
-```clojure
-(onelog.core/set-debug!)
-(onelog.core/set-info!)
-(onelog.core/set-warn!)
-```
-
-
 Example Log
 -----------
 
@@ -253,7 +195,7 @@ Roadmap
     - [x] Development: Add tests, use continuous integration.
 
 * 0.7.x
-    - [ ] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).
+    - [x] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).
     - [ ] Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library.
     - [ ] Add more timing options, like an easy way to measure the time spent in middleware as opposed to the time spent in the "app". We should probably assoc the timing info into the request map.
     - [ ] Use proper maps instead of keyword options.
