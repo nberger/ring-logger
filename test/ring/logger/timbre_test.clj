@@ -38,7 +38,7 @@
                       {:status 200
                        :body "ok"
                        :headers {:a "header in the response"}})
-                    (wrap-with-logger :logger-impl (make-timbre-logger)))]
+                    (wrap-with-logger {:logger-impl (make-timbre-logger)}))]
     (handler (mock/request :get "/doc/10"))
     (let [entries @*entries*]
       (is (= [:info :debug :trace :info] (map second entries)))
@@ -54,7 +54,7 @@
                       {:status 500
                        :body "Oh noes!"
                        :headers {:a "header in the response"}})
-                    (wrap-with-logger :logger-impl (make-timbre-logger)))]
+                    (wrap-with-logger {:logger-impl (make-timbre-logger)}))]
     (handler (mock/request :get "/doc/10"))
     (let [entries @*entries*]
       (is (= [:info :debug :trace :error] (map second entries)))
@@ -68,7 +68,7 @@
 (deftest basic-error-with-exception-request-logging
   (let [handler (-> (fn [req]
                       (throw (Exception. "I'm a handler that throws!")))
-                    (wrap-with-logger :logger-impl (make-timbre-logger)))]
+                    (wrap-with-logger {:logger-impl (make-timbre-logger)}))]
     (is (thrown-with-msg? Exception #"handler that throws"
                           (handler (mock/request :get "/doc/10"))))
     (let [entries @*entries*]

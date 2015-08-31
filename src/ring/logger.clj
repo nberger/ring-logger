@@ -111,14 +111,16 @@ middleware has a chance to do something with it.
    Options may include :logger-impl, :info, :debug, :trace, :error, :warn & :printer.
    Values are functions that accept a string argument and log it at that level.
    Uses tools.logging to log if none are supplied."
-  ([handler & {:keys [logger-impl] :as options}]
+  ([handler {:keys [logger-impl] :as options}]
    (let [options (merge (make-default-options logger-impl)
                         options)
          logger-impl (:logger-impl options)]
      (-> handler
          (make-logger-middleware options)
          (#(add-extra-middleware logger-impl %))
-         wrap-request-start))))
+         wrap-request-start)))
+  ([handler]
+   (wrap-with-logger handler {})))
 
 
 

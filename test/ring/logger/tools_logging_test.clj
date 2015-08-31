@@ -49,7 +49,7 @@
                       {:status 200
                        :body "ok"
                        :headers {:a "header in the response"}})
-                    (wrap-with-logger :printer :no-color))]
+                    (wrap-with-logger {:printer :no-color}))]
     (handler (mock/request :get "/doc/10"))
     (let [entries @*entries*]
       (is (= [:info :debug :trace :info] (map second entries)))
