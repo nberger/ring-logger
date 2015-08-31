@@ -233,6 +233,7 @@ Roadmap
 --------
 
 * 0.6.x
+    - Keep the migration path from ring.middleware.logger as smooth as possible
     - Add support for tools.loggging and timbre, with the possibility to not bring not needed dependencies.
     - Allow for more customizations (color/no-color, customize specific log messages)
     - Development: Improve tests, use continuous integration.
@@ -240,6 +241,7 @@ Roadmap
 * 0.7.x
     - Remove onelog if we see it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization)
     - Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library
+    - Use proper maps instead of keyword options.
 
 Contributing
 ------------
