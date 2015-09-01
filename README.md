@@ -7,19 +7,13 @@ Ring middleware to log the duration and other details of each request.
 
 The logging backend is pluggable. Only the tools.logging implementation is included.
 
-Other known implementations:
+Additional known implementations:
 
 * [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog)
 * [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre)
 
 [![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
 
-
-Migration from ring.middleware.logger (or if you just want to use some OneLog goodies)
--------------------------------------
-
-Check out [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog), or the
-[0.6.x branch](https://github.com/nberger/ring-logger/tree/0.6.x)
 
 Usage
 -----
@@ -54,6 +48,12 @@ Usage with timbre
 
 Check out [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre)
 
+Migration from ring.middleware.logger (or if you just want to use some OneLog goodies)
+-------------------------------------
+
+Check out [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog), or the
+[0.6.x branch](https://github.com/nberger/ring-logger/tree/0.6.x)
+
 Logging only certain requests
 -----------------------------
 
@@ -84,33 +84,31 @@ Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.
 Custom Logger Backend
 -----------------------
 
-You can supply custom logger functions to `wrap-with-logger` by supplying pairs
-of `:level custom-logger-fn` as additional arguments.  These will be used
-instead of the default `clojure.tools.logging` functions. The default mapping
-is:
+You can supply a custom logger backend by passing an instance that reifies
+the ring.logger/Logger protocol as :logger.
 
-```clojure
-      :info  (fn [x] (clojure.tools.logging/info x))
-      :debug (fn [x] (clojure.tools.logging/debug x))
-      :error (fn [x] (clojure.tools.logging/error x))
-      :warn  (fn [x] (clojure.tools.logging/warn x))
+Example:
+
+```
+(wrap-with-logger my-ring-app
+  {:logger (reify ring.logger/Logger
+                  (log [level throwable msg]
+                    (case level
+                      :error
+                      (println "OH NOES! We have an error!"
+                               msg
+                               (when throwable (.getMessage throwable)))
+
+                      :trace
+                      nil ; let's ignore trace messages
+
+                      ; else
+                      (println (name level) "-" msg)))})
 ```
 
-Replace these functions with whatever logging facility you'd like to use. Each
-function should take a string and log it at that log level.  For example, if
-you want to use a different function to log info and debug messages, you could
-call `wrap-with-logger` like this:
-
-```clojure
-      (wrap-with-logger my-ring-app
-        {:info (fn [x] (my.custom.logging/info x))
-         :debug (fn [x] (my.custom.logging/debug x))})
-```
-
-Another possibility is to provide a :logger-impl instance that implements
-the ring.logger.protocols/Logger protocol. That's how
-[ring-logger-onelog](https://github.com/nberger/ring-logger-onelog) and
-[ring-logger-timbre](https://github.com/nberger/ring-logger-timbre) are implemented
+Of course this can also be done with a deftype/defrecord,
+see [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog) and
+[ring-logger-timbre](https://github.com/nberger/ring-logger-timbre) for examples.
 
 
 What Gets Logged
@@ -137,12 +135,12 @@ and passing a `:printer` option to `wrap-with-logger`, like so:
 
 ```
 (defmethod request-details :my-printer
-  [{:keys [info trace] :as options} req]
-  (trace (str "detailed request details: " req)
-  (info (str "minimal request details: " (select-keys req [:character-encoding
-                                                           :content-length
-                                                           :request-method
-                                                           :uri]))))
+  [{:keys [logger] :as options} req]
+  (trace logger (str "detailed request details: " req)
+  (info logger (str "minimal request details: " (select-keys req [:character-encoding
+                                                                  :content-length
+                                                                  :request-method
+                                                                  :uri]))))
 
 (wrap-with-logger app {:printer :my-printer})
 ```

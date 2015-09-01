@@ -1,5 +1,6 @@
 (ns ring.logger.messages
-  (:require [clansi.core :as ansi]))
+  (:require [clansi.core :as ansi]
+            [ring.logger.protocols :refer [debug error info trace]]))
 
 (defn get-printer
   [{:keys [printer]} & more]
@@ -16,20 +17,20 @@
          " " headers)))
 
 (defmethod starting :default
-  [{:keys [info] :as options} req]
-  (info (str (ansi/style "Starting " :cyan)
-             (make-default-starting-message options req))))
+  [{:keys [logger] :as options} req]
+  (info logger (str (ansi/style "Starting " :cyan)
+                    (make-default-starting-message options req))))
 
 (defmethod starting :no-color
-  [{:keys [info] :as options} req]
-  (info (str "Starting "
-             (make-default-starting-message options req))))
+  [{:keys [logger] :as options} req]
+  (info logger (str "Starting "
+                    (make-default-starting-message options req))))
 
 (defmulti request-details get-printer)
 
 (defmethod request-details :default
-  [{:keys [debug] :as options} req]
-  (debug (str "Request details: " (select-keys req [:character-encoding
+  [{:keys [logger] :as options} req]
+  (debug logger (str "Request details: " (select-keys req [:character-encoding
                                                     :content-length
                                                     :content-type
                                                     :query-string
@@ -43,20 +44,20 @@
 (defmulti request-params get-printer)
 
 (defmethod request-params :default
-  [{:keys [info]} {:keys [params]}]
+  [{:keys [logger]} {:keys [params]}]
   (when params
-    (info (str "  \\ - - - -  Params: " params))))
+    (info logger (str "  \\ - - - -  Params: " params))))
 
 (defmulti sending-response get-printer)
 
 (defmethod sending-response :default
-  [{:keys [trace]} response]
-  (trace (str "[ring] Sending response: " response)))
+  [{:keys [logger]} response]
+  (trace logger (str "[ring] Sending response: " response)))
 
 (defmulti finished get-printer)
 
 (defn- make-and-log-finished-message
-  [{:keys [error info] :as options}
+  [{:keys [logger] :as options}
    {:keys [request-method uri remote-addr query-string] :as req}
    {:keys [status] :as resp}
    title time-str status-str]
@@ -71,8 +72,8 @@
                            (str " redirect to " (get-in resp [:headers "Location"]))))]
 
     (if (and (number? status) (>= status 500))
-      (error log-message)
-      (info  log-message))))
+      (error logger log-message)
+      (info  logger log-message))))
 
 (defmethod finished :default
   [options req {:keys [status] :as resp} totaltime]
@@ -108,19 +109,19 @@
 (defmulti exception get-printer)
 
 (defmethod exception :default
-  [{:keys [error error-with-ex] :as options}
+  [{:keys [logger] :as options}
    {:keys [request-method uri remote-addr] :as request}
    throwable totaltime]
-  (error (str (ansi/style "Uncaught exception processing request:" :bright :red)
-              " for " remote-addr
-              " in (" totaltime " ms) - request was: " request))
-  (error-with-ex throwable ""))
+  (error logger (str (ansi/style "Uncaught exception processing request:" :bright :red)
+                     " for " remote-addr
+                     " in (" totaltime " ms) - request was: " request))
+  (error logger throwable ""))
 
 (defmethod exception :no-color
-  [{:keys [error error-with-ex] :as options}
+  [{:keys [logger] :as options}
    {:keys [request-method uri remote-addr] :as request}
    throwable totaltime]
-  (error (str "Uncaught exception processing request:"
-              " for " remote-addr
-              " in (" totaltime " ms) - request was: " request))
-  (error-with-ex throwable ""))
+  (error logger (str "Uncaught exception processing request:"
+                     " for " remote-addr
+                     " in (" totaltime " ms) - request was: " request))
+  (error logger throwable ""))
