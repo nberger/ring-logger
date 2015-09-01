@@ -16,7 +16,7 @@ Migration from ring.middleware.logger
 
 The migration is pretty straightforward:
 
-* Replace dependency in `project.clj` from `[ring.middleware.logger "0.5.0"]` to `[ring-logger "0.6.1"]`
+* Replace dependency in `project.clj` from `[ring.middleware.logger "0.5.0"]` to `[ring-logger "0.6.2"]`
 * Replace the require from `[ring.middleware.logger :as logger]` to `[ring.logger :as logger]`
 
 To use with Onelog as in r.m.logger (ring-logger doesn't use OneLog by default):
@@ -29,7 +29,7 @@ Usage
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.1"]
+    [ring-logger "0.6.2"]
 ```
 
 
@@ -56,7 +56,7 @@ Usage with onelog
 In your `project.clj`, add the following dependencies:
 
 ```clojure
-    [ring-logger "0.6.1"]
+    [ring-logger "0.6.2"]
     [onelog "0.4.5"]
 ```
 
@@ -86,7 +86,7 @@ Usage with timbre
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.1"]
+    [ring-logger "0.6.2"]
     [com.taoensso/timbre "4.1.1"]
 ```
 

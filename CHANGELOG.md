@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+* Fix OneLog implementation: error -> error-with-ex
+
 ## 0.6.1
 
 * Add ability to customize messages & to disable coloring
