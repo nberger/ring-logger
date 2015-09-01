@@ -5,7 +5,12 @@ ring-logger [![Circle CI](https://circleci.com/gh/nberger/ring-logger.svg?style=
 
 Ring middleware to log the duration and other details of each request.
 
-The logging backend is pluggable, included implementations: tools.logging (default) and taoensso/timbre.
+The logging backend is pluggable. Only the tools.logging implementation is included.
+
+Other known implementations:
+
+* [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog)
+* [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre)
 
 [![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
 
@@ -13,7 +18,8 @@ The logging backend is pluggable, included implementations: tools.logging (defau
 Migration from ring.middleware.logger (or if you just want to use some OneLog goodies)
 -------------------------------------
 
-Check out [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog)
+Check out [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog), or the
+[0.6.x branch](https://github.com/nberger/ring-logger/tree/0.6.x)
 
 Usage
 -----
@@ -21,7 +27,7 @@ Usage
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.6.1"]
+    [ring-logger "0.7.0-SNAPSHOT"]
 ```
 
 
@@ -46,33 +52,7 @@ request to whatever logger is in use by clojure.tools.logging.
 Usage with timbre
 -----------------
 
-In your `project.clj`, add the following dependency:
-
-```clojure
-    [ring-logger "0.6.1"]
-    [com.taoensso/timbre "4.1.1"]
-```
-
-
-Add the middleware to your stack, using the timbre implementation. It's similar to
-using the default tools.logging implementation, but passing the timbre impl when
-adding the middleware:
-
-```clojure
-    (ns foo
-      (:require [ring.adapter.jetty :as jetty]
-                [ring.logger :as logger]
-                [ring.logger.timbre :refer [make-timbre-logger]))
-
-    (defn my-ring-app [request]
-         {:status 200
-          :headers {"Content-Type" "text/html"}
-          :body "Hello world!"})
-
-    (jetty/run-jetty (logger/wrap-with-logger my-ring-app
-                                              {:logger-impl (make-timbre-logger)}
-                     {:port 8080}))
-```
+Check out [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre)
 
 Logging only certain requests
 -----------------------------
@@ -128,7 +108,9 @@ call `wrap-with-logger` like this:
 ```
 
 Another possibility is to provide a :logger-impl instance that implements
-the ring.logger.protocols/Logger protocol.
+the ring.logger.protocols/Logger protocol. That's how
+[ring-logger-onelog](https://github.com/nberger/ring-logger-onelog) and
+[ring-logger-timbre](https://github.com/nberger/ring-logger-timbre) are implemented
 
 
 What Gets Logged
@@ -188,18 +170,18 @@ limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finish
 Roadmap
 --------
 
+* 0.7.x
+    - [x] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).
+    - [x] Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library.
+    - [ ] Add more timing options, like an easy way to measure the time spent in middleware as opposed to the time spent in the "app". We should probably assoc the timing info into the request map.
+    - [x] Use proper maps instead of keyword options.
+    - [ ] Development: Add more tests.
+
 * 0.6.x
     - [x] Keep the migration path from ring.middleware.logger as smooth as possible.
     - [x] Add support for tools.loggging and timbre, with the possibility to not bring not needed dependencies.
     - [x] Allow for more customizations (color/no-color, customize specific log messages).
     - [x] Development: Add tests, use continuous integration.
-
-* 0.7.x
-    - [x] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).
-    - [ ] Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library.
-    - [ ] Add more timing options, like an easy way to measure the time spent in middleware as opposed to the time spent in the "app". We should probably assoc the timing info into the request map.
-    - [x] Use proper maps instead of keyword options.
-    - [ ] Development: Add more tests.
 
 Contributing
 ------------
