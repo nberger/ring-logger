@@ -85,13 +85,13 @@ Custom Logger Backend
 -----------------------
 
 You can supply a custom logger backend by passing an instance that reifies
-the ring.logger/Logger protocol as :logger-impl.
+the ring.logger/Logger protocol as :logger.
 
 Example:
 
 ```
 (wrap-with-logger my-ring-app
-  {:logger-impl (reify ring.logger/Logger
+  {:logger (reify ring.logger/Logger
                   (log [level throwable msg]
                     (case level
                       :error
