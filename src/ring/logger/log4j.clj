@@ -38,7 +38,7 @@
         (handler request))))
 
   (error [_ x] (log/error x))
-  (error [_ ex x] (log/error (log/throwable ex) x))
+  (error-with-ex [_ ex x] (log/error (log/throwable ex) x))
   (info [_ x] (log/info x)) 
   (warn [_ x] (log/warn x)) 
   (debug [_ x] (log/debug x))
