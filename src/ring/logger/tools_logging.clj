@@ -6,12 +6,8 @@
   Logger
 
   (add-extra-middleware [_ handler] handler)
-  (error [_ x] (log/error x))
-  (error-with-ex [_ ex x] (log/error ex x))
-  (info [_ x] (log/info x))
-  (warn [_ x] (log/warn x)) 
-  (debug [_ x] (log/debug x))
-  (trace [_ x] (log/trace x)))
+  (log [_ level throwable message]
+    (log/log level throwable message)))
 
 (defn make-tools-logging-logger []
   (ToolsLoggingLogger.))

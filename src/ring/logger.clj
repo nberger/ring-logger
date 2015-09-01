@@ -5,7 +5,7 @@
    [clojure.java.io]
    [ring.logger.tools-logging :refer [make-tools-logging-logger]]
    [ring.logger.messages :as messages]
-   [ring.logger.protocols :refer [Logger error error-with-ex info warn debug trace add-extra-middleware]]))
+   [ring.logger.protocols :refer [Logger error info warn debug trace add-extra-middleware]]))
 
 (defn- pre-logger
   [options req]
@@ -85,15 +85,9 @@ middleware has a chance to do something with it.
 
 (defn make-default-options
   "Default logging functions."
-  [logger-impl]
-  (let [logger-impl (or logger-impl (make-tools-logging-logger))]
-    {:logger-impl logger-impl
-     :info  #(info logger-impl %)
-     :debug #(debug logger-impl %)
-     :error #(error logger-impl %)
-     :error-with-ex #(error-with-ex logger-impl %1 %2)
-     :warn  #(warn logger-impl %)
-     :trace #(trace logger-impl %)
+  [logger]
+  (let [logger (or logger (make-tools-logging-logger))]
+    {:logger logger
      :pre-logger pre-logger
      :post-logger post-logger
      :exception-logger exception-logger}))
@@ -108,16 +102,16 @@ middleware has a chance to do something with it.
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers.
 
-   Options may include :logger-impl, :info, :debug, :trace, :error, :warn & :printer.
+   Options may include :logger, :info, :debug, :trace, :error, :warn & :printer.
    Values are functions that accept a string argument and log it at that level.
    Uses tools.logging to log if none are supplied."
-  ([handler {:keys [logger-impl] :as options}]
-   (let [options (merge (make-default-options logger-impl)
+  ([handler {:keys [logger] :as options}]
+   (let [options (merge (make-default-options logger)
                         options)
-         logger-impl (:logger-impl options)]
+         logger (:logger options)]
      (-> handler
          (make-logger-middleware options)
-         (#(add-extra-middleware logger-impl %))
+         (#(add-extra-middleware logger %))
          wrap-request-start)))
   ([handler]
    (wrap-with-logger handler {})))
@@ -131,8 +125,8 @@ middleware has a chance to do something with it.
   read.
 
   This is inefficient, and should only be used for debugging."
-  [handler logger-fns]
+  [handler logger]
   (fn [request]
     (let [body ^String (slurp (:body request))]
-      ((:info logger-fns)  " -- Raw request body: '" body "'")
+      (info logger  " -- Raw request body: '" body "'")
       (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))))))
