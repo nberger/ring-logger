@@ -48,32 +48,6 @@ Check out [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre)
 Check out [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog), or the
 [0.6.x branch](https://github.com/nberger/ring-logger/tree/0.6.x)
 
-## Logging only certain requests
-
-If you wish to restrict logging to certain paths (or other
-conditions), combine ring-logger with
-[ring.middleware.conditional](https://github.com/pjlegato/ring.middleware.conditional), like so:
-
-```clojure
-(:require [ring.middleware.conditional :as c :refer  [if-url-starts-with
-                                                      if-url-doesnt-start-with
-                                                      if-url-matches
-                                                      if-url-doesnt-match]])
-
-(def my-ring-app
-   (-> handler
-       (if-url-starts-with "/foo" wrap-with-logger)
-
-        ;; Or:
-        ;; (c/if some-test-fn wrap-with-logger)
-        ;; etc.
-
-       wrap-with-other-handler))
-```
-
-Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
-
-
 ## Custom Logger Backend
 
 You can supply a custom logger backend by passing an instance that reifies
@@ -153,6 +127,32 @@ to a given request.
 2014-09-25 01:46:47,328 (worker-1) [DEBUG] : (af82) Request details: {:character-encoding "utf8", :content-length 0, :request-method :get, :scheme :http, :query-string nil, :uri "/favicon.ico", :remote-addr "127.0.0.1", :server-name "localhost", :server-port 8090}
 limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finished :get /favicon.ico for 127.0.0.1 in (3 ms) Status: 304
 ````
+
+## Logging only certain requests
+
+If you wish to restrict logging to certain paths (or other
+conditions), combine ring-logger with
+[ring.middleware.conditional](https://github.com/pjlegato/ring.middleware.conditional), like so:
+
+```clojure
+(:require [ring.middleware.conditional :as c :refer  [if-url-starts-with
+                                                      if-url-doesnt-start-with
+                                                      if-url-matches
+                                                      if-url-doesnt-match]])
+
+(def my-ring-app
+   (-> handler
+       (if-url-starts-with "/foo" wrap-with-logger)
+
+        ;; Or:
+        ;; (c/if some-test-fn wrap-with-logger)
+        ;; etc.
+
+       wrap-with-other-handler))
+```
+
+Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
+
 
 ## Roadmap
 
