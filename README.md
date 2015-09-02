@@ -117,18 +117,11 @@ A `:no-color` printer is provided, so to disable color:
 
 ## Example Log
 
-This is an example of logging at DEBUG level with OneLog. `af82` is the random ID
-assigned to this particular web request. The actual ID number output
-is ANSI-colorized for easy visual correlation of information related
-to a given request.
+This is an example of logging at TRACE level with log4j:
 
-````
-2014-09-25 01:46:47,328 (worker-1) [INFO] : (af82) Starting :get /favicon.ico for 127.0.0.1 {"host" "localhost:8090", "user-agent" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9) AppleWebKit/___.__ (KHTML, like Gecko) Chrome/--.-.----.--- Safari/---.--", "cookie" "ring-session=12345678-1234-1234-1234-1234567890abc", "connection" "keep-alive", "if-modified-since" "Wed, 24 Sep 2014 02:21:59 +0000", "accept" "*/*", "accept-language" "en-US", "accept-encoding" "gzip,deflate,sdch", "dnt" "1"}
-2014-09-25 01:46:47,328 (worker-1) [DEBUG] : (af82) Request details: {:character-encoding "utf8", :content-length 0, :request-method :get, :scheme :http, :query-string nil, :uri "/favicon.ico", :remote-addr "127.0.0.1", :server-name "localhost", :server-port 8090}
-limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finished :get /favicon.ico for 127.0.0.1 in (3 ms) Status: 304
-````
+![example log capture](https://github.com/nberger/ring-logger/blob/master/example/log-capture.png)
 
-## Log the request body for debugging
+## Log the request body (for debugging)
 
 If logging the request & response metadata is not enough when debugging and you need to take a look to
 each request body, then you can use `wrap-with-body-logger`:
