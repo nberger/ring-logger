@@ -1,13 +1,10 @@
-This project was forked from [pjlegato/ring.middleware.logger](http://github.com/pjlegato/ring.middleware.logger)
+# Ring-logger [![Circle CI](https://circleci.com/gh/nberger/ring-logger.svg?style=svg)](https://circleci.com/gh/nberger/ring-logger)
 
-ring-logger [![Circle CI](https://circleci.com/gh/nberger/ring-logger.svg?style=svg)](https://circleci.com/gh/nberger/ring-logger)
-======================
-
-Ring middleware to log the duration and other details of each request.
+Ring middleware to log duration and details for every request and response.
 
 The logging backend is pluggable. Only the tools.logging implementation is included.
 
-Additional known implementations:
+Additional known backends:
 
 * [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog)
 * [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre)
@@ -15,8 +12,7 @@ Additional known implementations:
 [![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
 
 
-Usage
------
+## Usage
 
 In your `project.clj`, add the following dependency:
 
@@ -43,19 +39,16 @@ request to whatever logger is in use by clojure.tools.logging.
 ```
 
 
-Usage with timbre
------------------
+### Usage with timbre
 
 Check out [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre)
 
-Migration from ring.middleware.logger (or if you just want to use some OneLog goodies)
--------------------------------------
+### Migration from ring.middleware.logger (or if you just want to use some OneLog goodies)
 
 Check out [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog), or the
 [0.6.x branch](https://github.com/nberger/ring-logger/tree/0.6.x)
 
-Logging only certain requests
------------------------------
+## Logging only certain requests
 
 If you wish to restrict logging to certain paths (or other
 conditions), combine ring-logger with
@@ -81,8 +74,7 @@ conditions), combine ring-logger with
 Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
 
 
-Custom Logger Backend
------------------------
+## Custom Logger Backend
 
 You can supply a custom logger backend by passing an instance that reifies
 the ring.logger/Logger protocol as :logger.
@@ -111,8 +103,7 @@ see [ring-logger-onelog](https://github.com/nberger/ring-logger-onelog) and
 [ring-logger-timbre](https://github.com/nberger/ring-logger-timbre) for examples.
 
 
-What Gets Logged
-----------------
+## What Gets Logged
 
 The default setup logs:
 
@@ -125,8 +116,7 @@ errors (i.e. its HTTP status is < 500);
 All messages are timestamped.
 
 
-Custom messages and how to disable coloring
--------------------------------------------
+## Custom messages and how to disable coloring
 
 Instead of the default messages (for request start, details, exceptions, response trace) you might want to
 provide your own custom messages. That's easy by supplying implementations of the printer multimethods
@@ -151,8 +141,7 @@ A `:no-color` printer is provided, so to disable color:
 (wrap-with-logger app {:printer :no-color})
 ```
 
-Example Log
------------
+## Example Log
 
 This is an example of logging at DEBUG level with OneLog. `af82` is the random ID
 assigned to this particular web request. The actual ID number output
@@ -165,8 +154,7 @@ to a given request.
 limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finished :get /favicon.ico for 127.0.0.1 in (3 ms) Status: 304
 ````
 
-Roadmap
---------
+## Roadmap
 
 * 0.7.x
     - [x] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).
@@ -181,13 +169,16 @@ Roadmap
     - [x] Allow for more customizations (color/no-color, customize specific log messages).
     - [x] Development: Add tests, use continuous integration.
 
-Contributing
-------------
+## Similar projects
+
+[pjlegato/ring.middleware.logger](http://github.com/pjlegato/ring.middleware.logger): ring-logger started as a fork
+of ring.middleware.logger. We recommend it as a great option if you don't mind pulling a transitive dependency on onelog & log4j.
+
+## Contributing
 
 Pull requests are welcome!
 
-License
--------
+## License
 
 Copyright (C) 2015 Nicolás Berger, 2012-2014 Paul Legato.
 
