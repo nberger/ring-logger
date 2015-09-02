@@ -1,4 +1,4 @@
-(defproject ring-logger "0.7.0"
+(defproject ring-logger "0.7.1-SNAPSHOT"
   :description "Log ring requests & responses using your favorite logging backend."
   :url "https://github.com/nberger/ring-logger"
   :license {:name "Eclipse Public License"
