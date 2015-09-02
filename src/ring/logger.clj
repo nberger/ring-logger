@@ -93,11 +93,9 @@ middleware has a chance to do something with it.
      :exception-logger exception-logger}))
 
 (defn wrap-request-start [handler]
-  (fn [request]
-    (let [now (System/currentTimeMillis)]
-      (->> now
-           (assoc request :logger-start-time)
-           handler))))
+  #(-> %
+       (assoc :logger-start-time (System/currentTimeMillis))
+       handler))
 
 (defn wrap-with-logger
   "Returns a Ring middleware handler which uses the prepackaged color loggers.
@@ -115,8 +113,6 @@ middleware has a chance to do something with it.
          wrap-request-start)))
   ([handler]
    (wrap-with-logger handler {})))
-
-
 
 (defn wrap-with-body-logger
   "Returns a Ring middleware handler that will log the bodies of any
