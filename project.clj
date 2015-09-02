@@ -1,5 +1,5 @@
 (defproject ring-logger "0.7.0-SNAPSHOT"
-  :description "Ring middleware to log each request."
+  :description "Log ring requests & responses using your favorite logging backend."
   :url "https://github.com/nberger/ring-logger"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
