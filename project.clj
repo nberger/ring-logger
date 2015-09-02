@@ -6,6 +6,5 @@
   :deploy-repositories [["releases" :clojars]]
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojars.pjlegato/clansi "1.3.0"]
-                 [org.clojure/tools.logging "0.3.1"]
-                 [com.taoensso/timbre "4.1.1" :scope "provided"]]
+                 [org.clojure/tools.logging "0.3.1"]]
   :profiles {:dev {:dependencies [[ring/ring-mock "0.2.0"]]}})
