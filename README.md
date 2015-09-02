@@ -119,7 +119,9 @@ A `:no-color` printer is provided, so to disable color:
 
 This is an example of logging at TRACE level with log4j:
 
-![example log capture](https://github.com/nberger/ring-logger/blob/master/example/log-capture.png)
+![example log capture](example/log-capture.png)
+
+Check out [the example project](example) if you want to generate a similar output in your local machine.
 
 ## Log the request body (for debugging)
 
