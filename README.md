@@ -2,7 +2,7 @@
 
 Ring middleware to log duration and details for every request and response.
 
-The logging backend is pluggable. Only the tools.logging implementation is included.
+The logging backend is pluggable. Only the [clojure/tools.logging](https://github.com/clojure/tools.logging) implementation is included.
 
 Additional known backends:
 
@@ -23,7 +23,7 @@ In your `project.clj`, add the following dependency:
 
 Then, just add the middleware to your stack. It comes preconfigured with
 reasonable defaults, which append ANSI colorized log messages on each
-request to whatever logger is in use by clojure.tools.logging.
+request to whatever logger is in use by [clojure/tools.logging](https://github.com/clojure/tools.logging).
 
 ```clojure
     (ns foo
