@@ -121,8 +121,10 @@ middleware has a chance to do something with it.
   read.
 
   This is inefficient, and should only be used for debugging."
-  [handler logger]
+  ([handler logger]
   (fn [request]
     (let [body ^String (slurp (:body request))]
       (info logger  " -- Raw request body: '" body "'")
       (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))))))
+  ([handler]
+   (wrap-with-body-logger handler (make-tools-logging-logger))))
