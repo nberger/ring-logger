@@ -140,7 +140,7 @@ each request body, then you can use `wrap-with-body-logger`:
 ```
 
 __Just be careful__: This is _inefficient_ as it has to consume the body input stream from the request
-and then put it again as a new input stream so your handler can also consume it as would do normally.
+and then put it again as a new input stream so your handler can also consume it as would normally do.
 
 ## Logging only certain requests
 
