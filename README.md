@@ -55,7 +55,7 @@ the ring.logger/Logger protocol as :logger.
 
 Example:
 
-```
+```clojure
 (wrap-with-logger my-ring-app
   {:logger (reify ring.logger/Logger
                   (log [level throwable msg]
@@ -97,7 +97,7 @@ provide your own custom messages. That's easy by supplying implementations of th
 like `starting`, `request-details`, `exception` and others (see `ring.logger.messages` ns for more details)
 and passing a `:printer` option to `wrap-with-logger`, like so:
 
-```
+```clojure
 (defmethod request-details :my-printer
   [{:keys [logger] :as options} req]
   (trace logger (str "detailed request details: " req)
@@ -111,7 +111,7 @@ and passing a `:printer` option to `wrap-with-logger`, like so:
 
 A `:no-color` printer is provided, so to disable color:
 
-```
+```clojure
 (wrap-with-logger app {:printer :no-color})
 ```
 
@@ -127,6 +127,20 @@ to a given request.
 2014-09-25 01:46:47,328 (worker-1) [DEBUG] : (af82) Request details: {:character-encoding "utf8", :content-length 0, :request-method :get, :scheme :http, :query-string nil, :uri "/favicon.ico", :remote-addr "127.0.0.1", :server-name "localhost", :server-port 8090}
 limefog.log.2014-09-25:2014-09-25 01:46:47,330 (worker-1) [INFO] : (af82) Finished :get /favicon.ico for 127.0.0.1 in (3 ms) Status: 304
 ````
+
+## Log the request body for debugging
+
+If logging the request & response metadata is not enough when debugging and you need to take a look to
+each request body, then you can use `wrap-with-body-logger`:
+
+```clojure
+(def handler (-> app
+                 wrap-with-logger
+                 wrap-with-body-logger))
+```
+
+__Just be careful__: This is _inefficient_ as it has to consume the body input stream from the request
+and then put it again as a new input stream so your handler can also consume it as would do normally.
 
 ## Logging only certain requests
 
