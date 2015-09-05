@@ -7,79 +7,49 @@
    [ring.logger.messages :as messages]
    [ring.logger.protocols :refer [Logger error info warn debug trace add-extra-middleware]]))
 
-(defn- pre-logger
-  [options req]
-  (messages/starting options req)
-  (messages/request-details options req)
-  (messages/request-params options req))
-
-(defn- post-logger
-  "Logs data about a finished request.
-
-By default, sends all log messages at \"info\" level to the logging
-infrastructure, unless status is >= 500, in which case they are sent as errors."
-  [options req resp totaltime]
-  (messages/sending-response options resp)
-  (messages/finished options req resp totaltime))
-
-
-(defn- exception-logger
-  [options req throwable totaltime]
-  (messages/exception options req throwable totaltime))
-
-
 (defn- make-logger-middleware
-  [handler {:keys [pre-logger post-logger exception-logger] :as options}]
-  "Adds logging for requests using the given logger functions.
+  [handler options]
+  "Adds logging for requests using the given logger.
 
-The convenience function (wrap-with-logger) calls this function with
-default loggers. Use (make-logger) directly if you want to supply your own
-logger functions.
+The actual logging is done by the multimethods in the messages ns.
 
-Each request is assigned a random hex id, to allow logged events
-relevant to a particular request to be correlated. This is exposed as
-a log4j Nested Diagnostic Context (NDC). Add a %x to your log format
-string to log it. (OneLog already includes the necessary %x by
+Before the handler is executed:
+  * messages/starting
+  * messages/request-details
+  * messages/request-params
+
+After the handler was executed:
+  * messages/sending-response
+  * messages/finished
+
+When an exception occurs:
+  * messages/exception
+
+(with ring-logger-onelog): Each request is assigned a random hex id,
+to allow logged events relevant to a particular request to be correlated.
+This is exposed as a log4j Nested Diagnostic Context (NDC). Add a %x to your
+log format string to log it. (OneLog already includes the necessary %x by
 default.)
-
-The pre-logger function is called before the handler is invoked, and
-receives the request as an argument.
-
-The post-logger function is called after the response is generated,
-and receives the request, the response, and the total time taken by the handler as arguments
-
-The exception-logger function is called in a (catch) clause, if an
-exception is thrown during the handler's run. It receives the request,
-the Throwable that was thrown, and the total time taken to that
-point. It re-throws the exception after logging it, so that other
-middleware has a chance to do something with it.
 "
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
     (let [start (:logger-start-time request)]
       (try
-        (pre-logger options
-                    request)
+        (messages/starting options request)
+        (messages/request-details options request)
+        (messages/request-params options request)
 
         (let [response (handler request)
-              finish (System/currentTimeMillis)
-              total  (- finish start)]
-
-          (post-logger options
-                       request
-                       response
-                       total)
+              total  (- (System/currentTimeMillis) start)]
+          (messages/sending-response options response)
+          (messages/finished options request response total)
 
           response)
 
         (catch Throwable t
-          (let [finish (System/currentTimeMillis)
-                total  (- finish start)]
-            (exception-logger options
-                              request
-                              t
-                              total))
+          (let [total (- (System/currentTimeMillis) start)]
+            (messages/exception options request t total))
           (throw t))))))
 
 
@@ -87,10 +57,7 @@ middleware has a chance to do something with it.
   "Default logging functions."
   [logger]
   (let [logger (or logger (make-tools-logging-logger))]
-    {:logger logger
-     :pre-logger pre-logger
-     :post-logger post-logger
-     :exception-logger exception-logger}))
+    {:logger logger}))
 
 (defn wrap-request-start [handler]
   #(-> %
