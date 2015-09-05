@@ -7,30 +7,8 @@
    [ring.logger.messages :as messages]
    [ring.logger.protocols :refer [Logger error info warn debug trace add-extra-middleware]]))
 
-(defn- make-logger-middleware
+(defn- wrap-with-logger*
   [handler options]
-  "Adds logging for requests using the given logger.
-
-The actual logging is done by the multimethods in the messages ns.
-
-Before the handler is executed:
-  * messages/starting
-  * messages/request-details
-  * messages/request-params
-
-After the handler was executed:
-  * messages/sending-response
-  * messages/finished
-
-When an exception occurs:
-  * messages/exception
-
-(with ring-logger-onelog): Each request is assigned a random hex id,
-to allow logged events relevant to a particular request to be correlated.
-This is exposed as a log4j Nested Diagnostic Context (NDC). Add a %x to your
-log format string to log it. (OneLog already includes the necessary %x by
-default.)
-"
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
@@ -52,30 +30,42 @@ default.)
             (messages/exception options request t total))
           (throw t))))))
 
-
-(defn make-default-options
-  "Default logging functions."
-  [logger]
-  (let [logger (or logger (make-tools-logging-logger))]
-    {:logger logger}))
-
 (defn wrap-request-start [handler]
   #(-> %
        (assoc :logger-start-time (System/currentTimeMillis))
        handler))
 
 (defn wrap-with-logger
-  "Returns a Ring middleware handler which uses the prepackaged color loggers.
+  "
+  Returns a Ring middleware handler that logs request and response details.
 
-   Options may include :logger, :info, :debug, :trace, :error, :warn & :printer.
-   Values are functions that accept a string argument and log it at that level.
-   Uses tools.logging to log if none are supplied."
+  Options may include:
+    * logger: Reifies ring.logger.protocoles/Logger. If not provided will use
+              a tools.logging logger.
+    * printer: Used for dispatching to the messages multimethods. If not present
+               it will use the default implementation which adds ANSI coloring to
+               the messages. A :no-color printer is provided.
+
+  The actual logging is done by the multimethods in the messages ns.
+
+  Before the handler is executed:
+    * messages/starting
+    * messages/request-details
+    * messages/request-params
+
+  After the handler was executed:
+    * messages/sending-response
+    * messages/finished
+
+  When an exception occurs:
+    * messages/exception
+  "
   ([handler {:keys [logger] :as options}]
-   (let [options (merge (make-default-options logger)
-                        options)
-         logger (:logger options)]
+   (let [logger (or logger (make-tools-logging-logger))
+         options (merge {:logger logger}
+                        options)]
      (-> handler
-         (make-logger-middleware options)
+         (wrap-with-logger* options)
          (#(add-extra-middleware logger %))
          wrap-request-start)))
   ([handler]
