@@ -2,10 +2,9 @@
   "Ring middleware that logs information about each request to a given
   set of generic logging functions."
   (:require
-   [clojure.java.io]
-   [ring.logger.tools-logging :refer [make-tools-logging-logger]]
-   [ring.logger.messages :as messages]
-   [ring.logger.protocols :refer [Logger error info warn debug trace add-extra-middleware]]))
+    [ring.logger.tools-logging :refer [make-tools-logging-logger]]
+    [ring.logger.messages :as messages]
+    [ring.logger.protocols :refer [add-extra-middleware debug]]))
 
 (defn- wrap-with-logger*
   [handler options]
