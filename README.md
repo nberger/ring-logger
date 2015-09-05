@@ -168,7 +168,7 @@ Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.
 * 0.7.x
     - [x] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).
     - [x] Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library.
-    - [ ] Add more timing options, like an easy way to measure the time spent in middleware as opposed to the time spent in the "app". We should probably assoc the timing info into the request map.
+    - [ ] Add the unique request-id as log context in ring-logger. Currently it's only supported by ring-logger-onelog
     - [x] Use proper maps instead of keyword options.
     - [ ] Development: Add more tests.
 
