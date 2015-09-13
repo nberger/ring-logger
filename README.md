@@ -87,7 +87,7 @@ errors (i.e. its HTTP status is < 500);
 * an :error level message when a response's HTTP status is >= 500;
 * an :error level message with a stack trace when an exception is thrown during response generation.
 
-All messages are timestamped.
+All messages will be usually timestamped by your logging infrastructure.
 
 
 ## Custom messages and how to disable coloring
@@ -113,6 +113,14 @@ A `:no-color` printer is provided, so to disable color:
 
 ```clojure
 (wrap-with-logger app {:printer :no-color})
+```
+
+## How to disable timing
+
+Use the option `:timing false` to disable the logging of the request processing duration
+
+```clojure
+(wrap-with-logger app {:timing false})
 ```
 
 ## Example Log

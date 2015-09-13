@@ -57,15 +57,16 @@
 (defmulti finished get-printer)
 
 (defn- make-and-log-finished-message
-  [{:keys [logger] :as options}
-   {:keys [request-method uri remote-addr query-string] :as req}
+  [{:keys [logger timing] :as options}
+   {:keys [request-method uri remote-addr query-string
+           logger-start-time logger-end-time] :as req}
    {:keys [status] :as resp}
    title time-str status-str]
   (let [log-message (str title
                          request-method " "
                          uri  (if query-string (str "?" query-string))
                          " for " remote-addr
-                         " in (" time-str " ms)"
+                         (when timing (str " in (" time-str " ms)"))
                          " Status: " status-str
 
                          (when (= status 302)
@@ -75,16 +76,21 @@
       (error logger log-message)
       (info  logger log-message))))
 
+(defn- get-total-time [{:keys [logger-start-time logger-end-time] :as req}]
+  (- logger-end-time logger-start-time))
+
 (defmethod finished :default
-  [options req {:keys [status] :as resp} totaltime]
-  (let [time-str (try (apply ansi/style
-                              (str totaltime)
-                              (cond
-                                (>= totaltime 1500)  [:bright :red]
-                                (>= totaltime 800)   [:red]
-                                (>= totaltime 500)   [:yellow]
-                                :else :default))
-                       (catch Exception e (or totaltime "??")))
+  [{:keys [timing] :as options} req {:keys [status] :as resp}]
+  (let [time-str (when timing
+                   (let [total-time (get-total-time req)]
+                     (try (apply ansi/style
+                                 (str total-time)
+                                 (cond
+                                   (>= total-time 1500)  [:bright :red]
+                                   (>= total-time 800)   [:red]
+                                   (>= total-time 500)   [:yellow]
+                                   :else :default))
+                          (catch Exception e (or total-time "??")))))
 
         status-str (try (apply ansi/style
                                 (str status)
@@ -98,30 +104,32 @@
     (make-and-log-finished-message options req resp title time-str status-str)))
 
 (defmethod finished :no-color
-  [options req {:keys [status] :as resp} totaltime]
+  [{:keys [timing] :as options} req {:keys [status] :as resp}]
   (make-and-log-finished-message options
                                  req
                                  resp
                                  "Finished "
-                                 (str totaltime)
+                                 (when timing (get-total-time req))
                                  (str status)))
 
 (defmulti exception get-printer)
 
 (defmethod exception :default
-  [{:keys [logger] :as options}
+  [{:keys [logger timing] :as options}
    {:keys [request-method uri remote-addr] :as request}
-   throwable totaltime]
+   throwable]
   (error logger (str (ansi/style "Uncaught exception processing request:" :bright :red)
                      " for " remote-addr
-                     " in (" totaltime " ms) - request was: " request))
+                     (when timing " in (" (get-total-time request) " ms)")
+                     " - request was: " request))
   (error logger throwable ""))
 
 (defmethod exception :no-color
-  [{:keys [logger] :as options}
+  [{:keys [logger timing] :as options}
    {:keys [request-method uri remote-addr] :as request}
-   throwable totaltime]
+   throwable]
   (error logger (str "Uncaught exception processing request:"
                      " for " remote-addr
-                     " in (" totaltime " ms) - request was: " request))
+                     (when timing " in (" (get-total-time request) " ms)")
+                     " - request was: " request))
   (error logger throwable ""))
