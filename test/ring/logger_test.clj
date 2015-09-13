@@ -52,7 +52,6 @@
 
 (deftest basic-error-request-logging
   (let [handler (-> (fn [req]
-                      (println "handler")
                       {:status 500
                        :body "Oh noes!"
                        :headers {:a "header in the response"}})
