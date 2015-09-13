@@ -66,3 +66,14 @@
                    (-> entries (nth 2) (nth 3))))
       (is (re-find #"Finished.*get /doc/10 for localhost in \(\d+ ms\) Status:.*500"
                    (-> entries last (nth 3)))))))
+
+ (deftest no-timing-option
+  (let [handler (-> (fn [req]
+                      {:status 200
+                       :body "ok"})
+                    (wrap-with-logger {:logger (make-test-logger)
+                                       :timing false}))]
+    (handler (mock/request :get "/doc/10"))
+    (let [entries @*entries*]
+      (is (re-find #"Finished [m\^\[0-9]+:get /doc/10 for localhost Status:.*200"
+                   (-> entries last (nth 3)))))))

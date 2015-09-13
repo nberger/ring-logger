@@ -7,27 +7,30 @@
     [ring.logger.protocols :refer [add-extra-middleware debug]]))
 
 (defn- wrap-with-logger*
-  [handler options]
+  [handler {:keys [timing] :as options}]
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
-    (let [start (:logger-start-time request)]
-      (try
-        (messages/starting options request)
-        (messages/request-details options request)
-        (messages/request-params options request)
+    (try
+      (messages/starting options request)
+      (messages/request-details options request)
+      (messages/request-params options request)
 
-        (let [response (handler request)
-              total  (- (System/currentTimeMillis) start)]
-          (messages/sending-response options response)
-          (messages/finished options request response total)
+      (let [response (handler request)
+            request (if timing
+                      (assoc request :logger-end-time (System/currentTimeMillis))
+                      request)]
+        (messages/sending-response options response)
+        (messages/finished options request response)
 
-          response)
+        response)
 
-        (catch Throwable t
-          (let [total (- (System/currentTimeMillis) start)]
-            (messages/exception options request t total))
-          (throw t))))))
+      (catch Throwable t
+        (let [request (if timing
+                        (assoc request :logger-end-time (System/currentTimeMillis))
+                        request)]
+          (messages/exception options request t))
+        (throw t)))))
 
 (defn wrap-request-start [handler]
   #(-> %
@@ -44,6 +47,7 @@
     * printer: Used for dispatching to the messages multimethods. If not present
                it will use the default implementation which adds ANSI coloring to
                the messages. A :no-color printer is provided.
+    * timing: Log the time taken by the app handler? Defaults to true.
 
   The actual logging is done by the multimethods in the messages ns.
 
@@ -61,12 +65,14 @@
   "
   ([handler {:keys [logger] :as options}]
    (let [logger (or logger (make-tools-logging-logger))
-         options (merge {:logger logger}
-                        options)]
-     (-> handler
-         (wrap-with-logger* options)
-         (#(add-extra-middleware logger %))
-         wrap-request-start)))
+         options (merge {:logger logger
+                         :timing true}
+                        options)
+         timing (:timing options)]
+     (cond-> handler
+         :always (wrap-with-logger* options)
+         :always (#(add-extra-middleware logger %))
+         timing wrap-request-start)))
   ([handler]
    (wrap-with-logger handler {})))
 
