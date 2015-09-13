@@ -162,22 +162,6 @@ conditions), combine ring-logger with
 
 Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.middleware.conditional) for full details.
 
-
-## Roadmap
-
-* 0.7.x
-    - [x] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).
-    - [x] Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library.
-    - [ ] Add the unique request-id as log context in ring-logger. Currently it's only supported by ring-logger-onelog
-    - [x] Use proper maps instead of keyword options.
-    - [ ] Development: Add more tests.
-
-* 0.6.x
-    - [x] Keep the migration path from ring.middleware.logger as smooth as possible.
-    - [x] Add support for tools.loggging and timbre, with the possibility to not bring not needed dependencies.
-    - [x] Allow for more customizations (color/no-color, customize specific log messages).
-    - [x] Development: Add tests, use continuous integration.
-
 ## Similar projects
 
 [pjlegato/ring.middleware.logger](http://github.com/pjlegato/ring.middleware.logger): ring-logger started as a fork
