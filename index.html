@@ -53,13 +53,13 @@
 
 <p>In your <code>project.clj</code>, add the following dependency:</p>
 
-<div class="highlight highlight-clojure"><pre>    [ring-logger <span class="pl-s"><span class="pl-pds">"</span>0.7.0<span class="pl-pds">"</span></span>]</pre></div>
+<div class="highlight highlight-source-clojure"><pre>    [ring-logger <span class="pl-s"><span class="pl-pds">"</span>0.7.1<span class="pl-pds">"</span></span>]</pre></div>
 
 <p>Then, just add the middleware to your stack. It comes preconfigured with
 reasonable defaults, which append ANSI colorized log messages on each
 request to whatever logger is in use by <a href="https://github.com/clojure/tools.logging">clojure/tools.logging</a>.</p>
 
-<div class="highlight highlight-clojure"><pre>    (<span class="pl-k">ns</span> <span class="pl-e">foo</span>
+<div class="highlight highlight-source-clojure"><pre>    (<span class="pl-k">ns</span> <span class="pl-e">foo</span>
       (<span class="pl-c1">:require</span> [ring.adapter.jetty     <span class="pl-c1">:as</span> jetty]
                 [ring.logger <span class="pl-c1">:as</span> logger]))
 
@@ -89,7 +89,7 @@ the ring.logger/Logger protocol as :logger.</p>
 
 <p>Example:</p>
 
-<div class="highlight highlight-clojure"><pre>(<span class="pl-en">wrap-with-logger</span> my-ring-app
+<div class="highlight highlight-source-clojure"><pre>(<span class="pl-en">wrap-with-logger</span> my-ring-app
   {<span class="pl-c1">:logger</span> (<span class="pl-en">reify</span> ring.logger/Logger
                   (<span class="pl-en">log</span> [level <span class="pl-k">throwable</span> msg]
                     (<span class="pl-k">case</span> level
@@ -121,7 +121,7 @@ errors (i.e. its HTTP status is &lt; 500);</li>
 <li>an :error level message with a stack trace when an exception is thrown during response generation.</li>
 </ul>
 
-<p>All messages are timestamped.</p>
+<p>All messages will be usually timestamped by your logging infrastructure.</p>
 
 <h2>
 <a id="custom-messages-and-how-to-disable-coloring" class="anchor" href="#custom-messages-and-how-to-disable-coloring" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom messages and how to disable coloring</h2>
@@ -131,7 +131,7 @@ provide your own custom messages. That's easy by supplying implementations of th
 like <code>starting</code>, <code>request-details</code>, <code>exception</code> and others (see <code>ring.logger.messages</code> ns for more details)
 and passing a <code>:printer</code> option to <code>wrap-with-logger</code>, like so:</p>
 
-<div class="highlight highlight-clojure"><pre>(<span class="pl-k">defmethod</span> request-details <span class="pl-c1">:my-printer</span>
+<div class="highlight highlight-source-clojure"><pre>(<span class="pl-k">defmethod</span> request-details <span class="pl-c1">:my-printer</span>
   [{<span class="pl-c1">:keys</span> [logger] <span class="pl-c1">:as</span> options} req]
   (<span class="pl-en">trace</span> logger (<span class="pl-en">str</span> <span class="pl-s"><span class="pl-pds">"</span>detailed request details: <span class="pl-pds">"</span></span> req)
   (<span class="pl-en">info</span> logger (<span class="pl-en">str</span> <span class="pl-s"><span class="pl-pds">"</span>minimal request details: <span class="pl-pds">"</span></span> (<span class="pl-en">select-keys</span> req [<span class="pl-c1">:character-encoding</span>
@@ -143,7 +143,14 @@ and passing a <code>:printer</code> option to <code>wrap-with-logger</code>, lik
 
 <p>A <code>:no-color</code> printer is provided, so to disable color:</p>
 
-<div class="highlight highlight-clojure"><pre>(<span class="pl-en">wrap-with-logger</span> app {<span class="pl-c1">:printer</span> <span class="pl-c1">:no-color</span>})</pre></div>
+<div class="highlight highlight-source-clojure"><pre>(<span class="pl-en">wrap-with-logger</span> app {<span class="pl-c1">:printer</span> <span class="pl-c1">:no-color</span>})</pre></div>
+
+<h2>
+<a id="how-to-disable-timing" class="anchor" href="#how-to-disable-timing" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to disable timing</h2>
+
+<p>Use the option <code>:timing false</code> to disable the logging of the request processing duration</p>
+
+<div class="highlight highlight-source-clojure"><pre>(<span class="pl-en">wrap-with-logger</span> app {<span class="pl-c1">:timing</span> <span class="pl-c1">false</span>})</pre></div>
 
 <h2>
 <a id="example-log" class="anchor" href="#example-log" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example Log</h2>
@@ -160,7 +167,7 @@ and passing a <code>:printer</code> option to <code>wrap-with-logger</code>, lik
 <p>If logging the request &amp; response metadata is not enough when debugging and you need to take a look to
 each request body, then you can use <code>wrap-with-body-logger</code>:</p>
 
-<div class="highlight highlight-clojure"><pre>(<span class="pl-k">def</span> <span class="pl-e">handler</span> (<span class="pl-en">-&gt;</span> app
+<div class="highlight highlight-source-clojure"><pre>(<span class="pl-k">def</span> <span class="pl-e">handler</span> (<span class="pl-en">-&gt;</span> app
                  wrap-with-logger
                  wrap-with-body-logger))</pre></div>
 
@@ -174,7 +181,7 @@ and then put it again as a new input stream so your handler can also consume it 
 conditions), combine ring-logger with
 <a href="https://github.com/pjlegato/ring.middleware.conditional">ring.middleware.conditional</a>, like so:</p>
 
-<div class="highlight highlight-clojure"><pre>(<span class="pl-c1">:require</span> [ring.middleware.conditional <span class="pl-c1">:as</span> c <span class="pl-c1">:refer</span>  [<span class="pl-k">if-url-starts-with</span>
+<div class="highlight highlight-source-clojure"><pre>(<span class="pl-c1">:require</span> [ring.middleware.conditional <span class="pl-c1">:as</span> c <span class="pl-c1">:refer</span>  [<span class="pl-k">if-url-starts-with</span>
                                                       <span class="pl-k">if-url-doesnt-start-with</span>
                                                       <span class="pl-k">if-url-matches</span>
                                                       <span class="pl-k">if-url-doesnt-match</span>]])
@@ -190,33 +197,6 @@ conditions), combine ring-logger with
        wrap-with-other-handler))</pre></div>
 
 <p>Consult the <a href="https://github.com/pjlegato/ring.middleware.conditional">ring.middleware.conditional docs</a> for full details.</p>
-
-<h2>
-<a id="roadmap" class="anchor" href="#roadmap" aria-hidden="true"><span class="octicon octicon-link"></span></a>Roadmap</h2>
-
-<ul>
-<li>
-<p>0.7.x</p>
-
-<ul>
-<li>[x] Remove onelog if we think it doesn't needs to be in ring-logger (I mean: if the same can be done by using onelog in the client app + some customization).</li>
-<li>[x] Leave only tools.logging implementation in ring-logger, extract timbre implementation to other library.</li>
-<li>[ ] Add the unique request-id as log context in ring-logger. Currently it's only supported by ring-logger-onelog</li>
-<li>[x] Use proper maps instead of keyword options.</li>
-<li>[ ] Development: Add more tests.</li>
-</ul>
-</li>
-<li>
-<p>0.6.x</p>
-
-<ul>
-<li>[x] Keep the migration path from ring.middleware.logger as smooth as possible.</li>
-<li>[x] Add support for tools.loggging and timbre, with the possibility to not bring not needed dependencies.</li>
-<li>[x] Allow for more customizations (color/no-color, customize specific log messages).</li>
-<li>[x] Development: Add tests, use continuous integration.</li>
-</ul>
-</li>
-</ul>
 
 <h2>
 <a id="similar-projects" class="anchor" href="#similar-projects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Similar projects</h2>
