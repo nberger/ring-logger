@@ -66,7 +66,7 @@
       (is (re-find #"Finished.*get /doc/10 for localhost in \(\d+ ms\) Status:.*500"
                    (-> entries last (nth 3)))))))
 
- (deftest no-timing-option
+(deftest no-timing-option
   (let [handler (-> (fn [req]
                       {:status 200
                        :body "ok"})

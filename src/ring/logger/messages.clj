@@ -118,18 +118,20 @@
   [{:keys [logger timing] :as options}
    {:keys [request-method uri remote-addr] :as request}
    throwable]
-  (error logger (str (ansi/style "Uncaught exception processing request:" :bright :red)
-                     " for " remote-addr
-                     (when timing " in (" (get-total-time request) " ms)")
-                     " - request was: " request))
-  (error logger throwable ""))
+  (error logger
+         throwable
+         (str (ansi/style "Uncaught exception processing request:" :bright :red)
+              " for " remote-addr
+              (when timing " in (" (get-total-time request) " ms)")
+              " - request was: " request)))
 
 (defmethod exception :no-color
   [{:keys [logger timing] :as options}
    {:keys [request-method uri remote-addr] :as request}
    throwable]
-  (error logger (str "Uncaught exception processing request:"
-                     " for " remote-addr
-                     (when timing " in (" (get-total-time request) " ms)")
-                     " - request was: " request))
-  (error logger throwable ""))
+  (error logger
+         throwable
+         (str "Uncaught exception processing request:"
+              " for " remote-addr
+              (when timing " in (" (get-total-time request) " ms)")
+              " - request was: " request)))
