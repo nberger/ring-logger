@@ -7,7 +7,7 @@
     [ring.logger.protocols :refer [add-extra-middleware debug]]))
 
 (defn- wrap-with-logger*
-  [handler {:keys [timing] :as options}]
+  [handler {:keys [timing exceptions] :as options}]
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
   (fn [request]
@@ -26,10 +26,11 @@
         response)
 
       (catch Throwable t
-        (let [request (if timing
-                        (assoc request :logger-end-time (System/currentTimeMillis))
-                        request)]
-          (messages/exception options request t))
+        (when exceptions
+          (let [request (if timing
+                          (assoc request :logger-end-time (System/currentTimeMillis))
+                          request)]
+            (messages/exception options request t)))
         (throw t)))))
 
 (defn wrap-request-start [handler]
@@ -48,6 +49,7 @@
                it will use the default implementation which adds ANSI coloring to
                the messages. A :no-color printer is provided.
     * timing: Log the time taken by the app handler? Defaults to true.
+    * exceptions: Catch, log & rethrow exceptions. Defaults to true
 
   The actual logging is done by the multimethods in the messages ns.
 
@@ -60,12 +62,13 @@
     * messages/sending-response
     * messages/finished
 
-  When an exception occurs:
+  When an exception occurs (and :exceptions option is not false):
     * messages/exception
   "
   ([handler {:keys [logger] :as options}]
    (let [logger (or logger (make-tools-logging-logger))
          options (merge {:logger logger
+                         :exceptions true
                          :timing true}
                         options)
          timing (:timing options)]

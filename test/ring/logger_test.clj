@@ -87,3 +87,13 @@
       (is (= [:info :debug :error] (map second entries)))
       (is (re-find #"Oops, I throw sometimes"
                    (-> entries (nth 2) (nth 3)))))))
+
+(deftest exceptions-option
+  (let [handler (-> (fn [req] (throw (Exception. "Oops, I throw sometimes...")))
+                    (wrap-with-logger {:logger (make-test-logger)
+                                       :exceptions false}))]
+    (try
+      (handler (mock/request :get "/doc/10"))
+      (catch Exception e))
+    (let [entries @*entries*]
+      (is (= [:info :debug] (map second entries))))))
