@@ -84,6 +84,6 @@
       (handler (mock/request :get "/doc/10"))
       (catch Exception e))
     (let [entries @*entries*]
-      (= [:info :debug :error] (map second entries))
+      (is (= [:info :debug :error] (map second entries)))
       (is (re-find #"Oops, I throw sometimes"
                    (-> entries (nth 2) (nth 3)))))))
