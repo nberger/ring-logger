@@ -7,11 +7,11 @@
 
 (defroutes handler
   (GET "/" [name] (format "<h1>Hello, %s!</h1>" name))
-  (POST "/throws" [] (throw "Oops, sooooorry"))
+  (POST "/throws" [] (throw (Exception. "Oops, sooooorry")))
   (route/not-found "<h1>Page not found</h1>"))
 
 (def app (-> handler
-                 logger/wrap-with-logger))
+             logger/wrap-with-logger))
 
 (defn -main [& args]
   (let [server (jetty/run-jetty app
