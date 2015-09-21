@@ -76,3 +76,14 @@
     (let [entries @*entries*]
       (is (re-find #"Finished [m\^\[0-9]+:get /doc/10 for localhost Status:.*200"
                    (-> entries last (nth 3)))))))
+
+(deftest exception-logging-enabled
+  (let [handler (-> (fn [req] (throw (Exception. "Oops, I throw sometimes...")))
+                    (wrap-with-logger {:logger (make-test-logger)}))]
+    (try
+      (handler (mock/request :get "/doc/10"))
+      (catch Exception e))
+    (let [entries @*entries*]
+      (= [:info :debug :error] (map second entries))
+      (is (re-find #"Oops, I throw sometimes"
+                   (-> entries (nth 2) (nth 3)))))))

@@ -120,7 +120,9 @@
    throwable]
   (error logger
          throwable
-         (str (ansi/style "Uncaught exception processing request:" :bright :red)
+         (str (ansi/style "Uncaught exception " :red)
+              (ansi/style (or (.getMessage throwable) "<No Message>") :bright :red)
+              " processing request:"
               " for " remote-addr
               (when timing " in (" (get-total-time request) " ms)")
               " - request was: " request)))
@@ -131,7 +133,9 @@
    throwable]
   (error logger
          throwable
-         (str "Uncaught exception processing request:"
+         (str "Uncaught exception "
+              (or (.getMessage throwable) "<No Message>")
+              " processing request:"
               " for " remote-addr
               (when timing " in (" (get-total-time request) " ms)")
               " - request was: " request)))
