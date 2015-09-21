@@ -123,6 +123,14 @@ Use the option `:timing false` to disable the logging of the request processing 
 (wrap-with-logger app {:timing false})
 ```
 
+## How to disable exceptions logging
+
+This is especially useful in case of using ring.middleware.stacktrace already.
+
+```clojure
+(wrap-with-logger app {:exceptions false})
+```
+
 ## Example Log
 
 This is an example of logging at TRACE level with log4j:

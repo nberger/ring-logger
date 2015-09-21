@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.2
+
+### New Features
+
+* Add `:exceptions` option to disable exception logging.
+  Useful when already using ring.middleware.stacktrace
+
+### Enhancements
+
+* Generate one log message instead of two when an exception occurs.
+* Include colorized exception message in logged string.
+
 ## 0.7.1
 
 New features:
