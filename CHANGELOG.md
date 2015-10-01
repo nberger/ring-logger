@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.3
+
+### Bug fixes
+
+* Fix wrap-with-body-logger. It wasn't working at all.
+
 ## 0.7.2
 
 ### New Features
