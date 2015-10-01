@@ -1,7 +1,8 @@
 (ns ring.logger-test
   (:require [clojure.test :refer [deftest is use-fixtures]]
-            [ring.logger :refer [wrap-with-logger]]
+            [ring.logger :refer [wrap-with-logger wrap-with-body-logger]]
             [ring.logger.protocols :as protocols]
+            [ring.util.codec :as codec]
             [ring.mock.request :as mock]))
 
 (def ^{:dynamic true} *entries* (atom []))
@@ -32,6 +33,20 @@
                    (-> entries (nth 2) (nth 3))))
       (is (re-find #"Finished [m\^\[0-9]+:get /doc/10 for localhost in \(\d+ ms\) Status:.*200"
                    (-> entries last (nth 3)))))))
+
+(deftest basic-ok-body-logging
+  (let [handler (-> (fn [req]
+                      {:status 200
+                       :body "ok"
+                       :headers {:a "header in the response"}})
+                    (wrap-with-body-logger (make-test-logger)))
+        params {:foo :bar :zoo 123}]
+    (handler (-> (mock/request :post "/doc/10")
+                 (mock/body params)))
+    (let [entries @*entries*]
+      (is (= [:debug] (map second entries)))
+      (is (= (str "-- Raw request body: '" (codec/form-encode params) "'")
+             (-> entries first (nth 3)))))))
 
 (deftest no-color-ok-request-logging
   (let [handler (-> (fn [req]

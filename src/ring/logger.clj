@@ -89,7 +89,7 @@
   ([handler logger]
   (fn [request]
     (let [body ^String (slurp (:body request))]
-      (debug logger  " -- Raw request body: '" body "'")
+      (debug logger (str "-- Raw request body: '" body "'"))
       (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))))))
   ([handler]
    (wrap-with-body-logger handler (make-tools-logging-logger))))
