@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.4
+
+### Bug fixes
+
+* Fix timing info in exception message
+
 ## 0.7.3
 
 ### Bug fixes
