@@ -124,7 +124,7 @@
               (ansi/style (or (.getMessage throwable) "<No Message>") :bright :red)
               " processing request:"
               " for " remote-addr
-              (when timing " in (" (get-total-time request) " ms)")
+              (when timing (str " in (" (get-total-time request) " ms)"))
               " - request was: " request)))
 
 (defmethod exception :no-color
@@ -137,5 +137,5 @@
               (or (.getMessage throwable) "<No Message>")
               " processing request:"
               " for " remote-addr
-              (when timing " in (" (get-total-time request) " ms)")
+              (when timing (str " in (" (get-total-time request) " ms)"))
               " - request was: " request)))

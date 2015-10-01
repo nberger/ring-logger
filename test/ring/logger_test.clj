@@ -100,7 +100,7 @@
       (catch Exception e))
     (let [entries @*entries*]
       (is (= [:info :debug :error] (map second entries)))
-      (is (re-find #"Oops, I throw sometimes"
+      (is (re-find #"Oops, I throw sometimes.*processing request.*for localhost in \(\d+ ms\)"
                    (-> entries (nth 2) (nth 3)))))))
 
 (deftest exceptions-option
