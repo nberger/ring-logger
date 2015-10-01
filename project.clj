@@ -7,4 +7,5 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojars.pjlegato/clansi "1.3.0"]
                  [org.clojure/tools.logging "0.3.1"]]
-  :profiles {:dev {:dependencies [[ring/ring-mock "0.2.0"]]}})
+  :profiles {:dev {:dependencies [[ring/ring-mock "0.2.0"]
+                                  [ring/ring-codec "1.0.0"]]}})

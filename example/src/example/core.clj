@@ -11,7 +11,8 @@
   (route/not-found "<h1>Page not found</h1>"))
 
 (def app (-> handler
-             logger/wrap-with-logger))
+             logger/wrap-with-logger
+             logger/wrap-with-body-logger))
 
 (defn -main [& args]
   (let [server (jetty/run-jetty app
@@ -30,7 +31,7 @@
 
     ; throws
     (try
-      (http/post "http://localhost:14587/throws")
+      (http/post "http://localhost:14587/throws" {:form-params {:foo "bar"}})
       ; ignore
       (catch Throwable t))
 
