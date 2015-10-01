@@ -17,7 +17,7 @@ Additional known backends:
 In your `project.clj`, add the following dependency:
 
 ```clojure
-    [ring-logger "0.7.1"]
+    [ring-logger "0.7.4"]
 ```
 
 
