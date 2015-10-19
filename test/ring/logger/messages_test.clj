@@ -1,10 +1,42 @@
 (ns ring.logger.messages-test
   (:require [ring.logger.messages :as msg]
+            [ring.logger :as logger]
             [ring.logger.protocols :refer [Logger]]
             [clojure.edn :as edn]
-            [clojure.test :refer [is deftest]]))
+            [clojure.test :refer [is deftest testing]]))
 
-(deftest redacted-headers-and-params-test
+(deftest redact-fn-from-options-test
+  (testing "default redact-fn"
+    (let [options (logger/make-options {})
+          m {:authorization "some-secret-token"
+             :password      "123456"
+             :user          "john"}]
+      (is (= ((msg/redact-some #{:authorization :password} (constantly "[REDACTED]")) m)
+             ((:redact-fn options) m)
+             {:authorization "[REDACTED]"
+              :password      "[REDACTED]"
+              :user          "john"}))))
+
+  (testing "identity as redact-fn"
+    (let [options (logger/make-options {:redact-fn identity})
+          m {:authorization "some-secret-token"
+             :password      "123456"
+             :user          "john"}]
+      (is (= m
+             ((:redact-fn options) m))))))
+
+(deftest default-redacted-headers-test
+  (let [options (logger/make-options {})
+        m {:authorization "some-secret-token"
+           :password      "123456"
+           :user          "john"}]
+    (is (= ((msg/redact-some #{:authorization :password} (constantly "[REDACTED]")) m)
+           ((:redact-fn options) m)
+           {:authorization "[REDACTED]"
+            :password      "[REDACTED]"
+            :user          "john"}))))
+
+(deftest redacted-headers-and-params-with-custom-fn-test
   (let [options {:printer :no-color
                  :logger (reify Logger (log [_ _ _ message] message))
                  :redact-fn (msg/redact-some #{:authorization :password} (constantly "[I WAS REDACTED]"))}

@@ -38,6 +38,17 @@
        (assoc :logger-start-time (System/currentTimeMillis))
        handler))
 
+(defn make-options [options]
+  (let [logger (or (:logger options) (make-tools-logging-logger))
+        redact-keys (or (:redact-keys options) #{:authorization :password})
+        redact-value (or (:redact-value options) "[REDACTED]")
+        redact-fn (or (:redact-fn options) (messages/redact-some redact-keys (constantly redact-value)))]
+    (merge {:logger logger
+            :redact-fn redact-fn
+            :exceptions true
+            :timing true}
+           options)))
+
 (defn wrap-with-logger
   "
   Returns a Ring middleware handler that logs request and response details.
@@ -51,7 +62,12 @@
     * timing: Log the time taken by the app handler? Defaults to true.
     * exceptions: Catch, log & rethrow exceptions. Defaults to true
     * redact-fn: Function used to redact headers and params.
-                 See logger.messages/redact-some for an example
+                 Default: logger.messages/redact-some built from :redact-keys &
+                 :redact-value options
+    * redact-keys: Key set passed to build the default redact-fn. Ignored if :redact-fn
+                   is present. Default: #{:authorization :password}
+    * redact-value: Value used as the replacement for redacted keys. Is passed to build
+                    the default redact-fn as `(constantly redact-value)`
 
   The actual logging is done by the multimethods in the messages ns.
 
@@ -67,13 +83,8 @@
   When an exception occurs (and :exceptions option is not false):
     * messages/exception
   "
-  ([handler {:keys [logger] :as options}]
-   (let [logger (or logger (make-tools-logging-logger))
-         options (merge {:logger logger
-                         :exceptions true
-                         :timing true}
-                        options)
-         timing (:timing options)]
+  ([handler options]
+   (let [{:keys [logger timing] :as options} (make-options options)]
      (cond-> handler
          :always (wrap-with-logger* options)
          :always (#(add-extra-middleware logger %))

@@ -13,8 +13,8 @@
   "Creates a function that will redact each key from keys found at any nesting
   level in m.
   The redacted value is obtained by applying redact-fn to key and value"
-  [keys redact-fn]
-  (let [f (fn [[k v]] (if (keys k) [k (redact-fn k v)] [k v]))]
+  [keys redact-value-fn]
+  (let [f (fn [[k v]] (if (keys k) [k (redact-value-fn k v)] [k v]))]
     (fn [m]
       (walk/postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))
 
