@@ -50,6 +50,8 @@
                the messages. A :no-color printer is provided.
     * timing: Log the time taken by the app handler? Defaults to true.
     * exceptions: Catch, log & rethrow exceptions. Defaults to true
+    * redact-fn: Function used to redact headers and params.
+                 See logger.messages/redact-some for an example
 
   The actual logging is done by the multimethods in the messages ns.
 
