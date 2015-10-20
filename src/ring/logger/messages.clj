@@ -1,5 +1,6 @@
 (ns ring.logger.messages
   (:require [clansi.core :as ansi]
+            [clojure.walk :as walk]
             [ring.logger.protocols :refer [debug error info trace]]))
 
 (defn get-printer
@@ -8,13 +9,24 @@
 
 (defmulti starting get-printer)
 
+(defn redact-some
+  "Creates a function that will redact each key from keys found at any nesting
+  level in m.
+  The redacted value is obtained by applying redact-fn to key and value"
+  [keys redact-value-fn]
+  (let [f (fn [[k v]] (if (keys k) [k (redact-value-fn k v)] [k v]))]
+    (fn [m]
+      (walk/postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))
+
+(defn- redact-map [m {:keys [redact-fn]}]
+  (if redact-fn (redact-fn m) m))
+
 (defn- make-default-starting-message
-  [options {:keys [request-method uri remote-addr query-string headers params] :as req}]
-  (let [headers (dissoc headers "authorization")]
-    (str request-method " "
-         uri (if query-string (str "?" query-string))
-         " for " remote-addr
-         " " headers)))
+  [options {:keys [request-method uri remote-addr query-string headers] :as req}]
+  (str request-method " "
+       uri (if query-string (str "?" query-string))
+       " for " remote-addr
+       " " (pr-str (redact-map headers options))))
 
 (defmethod starting :default
   [{:keys [logger] :as options} req]
@@ -41,12 +53,15 @@
                                                     :server-port
                                                     :uri]))))
 
+(def request-params-default-prefix "  \\ - - - -  Params: ")
+
 (defmulti request-params get-printer)
 
 (defmethod request-params :default
-  [{:keys [logger]} {:keys [params]}]
+  [{:keys [logger] :as options} {:keys [params]}]
   (when params
-    (info logger (str "  \\ - - - -  Params: " params))))
+    (let [redacted-params (redact-map params options)]
+      (info logger (str request-params-default-prefix redacted-params)))))
 
 (defmulti sending-response get-printer)
 
