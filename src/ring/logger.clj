@@ -66,7 +66,7 @@
                  :redact-value options
     * redact-keys: Key set passed to build the default redact-fn. Ignored if :redact-fn
                    is present. Default: #{:authorization :password}
-    * redact-value: Value used as the replacement for redacted keys. Is passed to build
+    * redact-value: Value used as the replacement for redacted keys. It's passed to build
                     the default redact-fn as `(constantly redact-value)`
 
   The actual logging is done by the multimethods in the messages ns.

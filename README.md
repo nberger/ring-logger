@@ -131,6 +131,30 @@ This is especially useful in case of using ring.middleware.stacktrace already.
 (wrap-with-logger app {:exceptions false})
 ```
 
+## Password: "[REDACTED]"
+
+Sensitive information in params and headers can be redacted before it's sent to the logs.
+
+**This is very important**: Nobody wants user passwords or authentication tokens to get to the logs and
+live there forever, in plain text, *right*?
+
+By default, ring-logger will redact any header or param named `password` or `authorization`. If you want ring-logger
+to redact other params you can configure the `redact-keys` option:
+
+```clojure
+(wrap-with-logger app {:redact-keys #{:senha :token})
+```
+
+Ring-logger will walk through the params and headers and redact any key whose name is found in that `redact-keys` set.
+If you want to use your own function to redact the keys, you can pass a `redact-fn
+
+```clojure
+;;log only the keys from params & headers
+(wrap-with-logger app {:redact-fn (fn [m] (keys m))})
+```
+
+If you don't like "[REDACTED]" and want to use a different replacement value, just pass the `:redact-value` option.
+
 ## Example Log
 
 This is an example of logging at TRACE level with log4j:
