@@ -8,12 +8,12 @@
 (deftest redact-fn-from-options-test
   (testing "default redact-fn"
     (let [options (logger/make-options {})
-          m {:authorization "some-secret-token"
+          m {"authorization" "some-secret-token"
              :password      "123456"
              :user          "john"}]
-      (is (= ((msg/redact-some #{:authorization :password} (constantly "[REDACTED]")) m)
+      (is (= ((msg/redact-some #{"authorization" :password} (constantly "[REDACTED]")) m)
              ((:redact-fn options) m)
-             {:authorization "[REDACTED]"
+             {"authorization" "[REDACTED]"
               :password      "[REDACTED]"
               :user          "john"}))))
 
@@ -27,12 +27,12 @@
 
 (deftest default-redacted-headers-test
   (let [options (logger/make-options {})
-        m {:authorization "some-secret-token"
+        m {"authorization" "some-secret-token"
            :password      "123456"
            :user          "john"}]
-    (is (= ((msg/redact-some #{:authorization :password} (constantly "[REDACTED]")) m)
+    (is (= ((msg/redact-some #{"authorization" :password} (constantly "[REDACTED]")) m)
            ((:redact-fn options) m)
-           {:authorization "[REDACTED]"
+           {"authorization" "[REDACTED]"
             :password      "[REDACTED]"
             :user          "john"}))))
 

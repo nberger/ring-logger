@@ -138,8 +138,8 @@ Sensitive information in params and headers can be redacted before it's sent to 
 **This is very important**: Nobody wants user passwords or authentication tokens to get to the logs and
 live there forever, in plain text, *right*?
 
-By default, ring-logger will redact any header or param named `password` or `authorization`. If you want ring-logger
-to redact other params you can configure the `redact-keys` option:
+By default, ring-logger will redact an authorization header or any param named `password` (at any nesting level).
+If you want ring-logger to redact other params you can configure the `redact-keys` option:
 
 ```clojure
 (wrap-with-logger app {:redact-keys #{:senha :token})

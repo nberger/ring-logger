@@ -40,7 +40,7 @@
 
 (defn make-options [options]
   (let [logger (or (:logger options) (make-tools-logging-logger))
-        redact-keys (or (:redact-keys options) #{:authorization :password})
+        redact-keys (or (:redact-keys options) #{"authorization" :password})
         redact-value (or (:redact-value options) "[REDACTED]")
         redact-fn (or (:redact-fn options) (messages/redact-some redact-keys (constantly redact-value)))]
     (merge {:logger logger
@@ -65,7 +65,7 @@
                  Default: logger.messages/redact-some built from :redact-keys &
                  :redact-value options
     * redact-keys: Key set passed to build the default redact-fn. Ignored if :redact-fn
-                   is present. Default: #{:authorization :password}
+                   is present. Default: #{\"authorization\" :password}
     * redact-value: Value used as the replacement for redacted keys. It's passed to build
                     the default redact-fn as `(constantly redact-value)`
 

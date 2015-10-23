@@ -28,7 +28,7 @@
     ; Hello ring-logger!
     (http/get "http://localhost:14587/?name=ring-logger"
               {:headers {"foo" "baz"
-                         "authorization" "Basic super-secret!"}})
+                         "AuThorization" "Basic super-secret!"}})
 
     ; not found
     (try

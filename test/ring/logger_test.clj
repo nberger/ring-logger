@@ -112,3 +112,13 @@
       (catch Exception e))
     (let [entries @*entries*]
       (is (= [:info :debug] (map second entries))))))
+
+(deftest redact-authorization-header
+  (let [handler (-> (fn [req] {:status 200 :body "Hello!"})
+                    (wrap-with-logger {:logger (make-test-logger)}))]
+    (handler (-> (mock/request :get "/")
+                 (mock/header "AuthoRizaTion" "Basic secret")))
+    (println @*entries*)
+    (is (= []
+           (->> (map #(nth % 3) @*entries*)
+                (filter #(re-find #"secret" %)))))))
