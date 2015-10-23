@@ -146,14 +146,14 @@ to redact other params you can configure the `redact-keys` option:
 ```
 
 Ring-logger will walk through the params and headers and redact any key whose name is found in that `redact-keys` set.
-If you want to use your own function to redact the keys, you can pass a `redact-fn
+If you want to use your own function to redact the keys, you can pass a `redact-fn`:
 
 ```clojure
 ;;log only the keys from params & headers
 (wrap-with-logger app {:redact-fn (fn [m] (keys m))})
 ```
 
-If you don't like "[REDACTED]" and want to use a different replacement value, just pass the `:redact-value` option.
+If you don't like `"[REDACTED]"` as the redacted value and want to use a different one, just pass the `:redact-value` option.
 
 ## Example Log
 
