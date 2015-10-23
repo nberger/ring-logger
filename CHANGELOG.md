@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.5
+
+### New features
+
+* Add ability to redact headers & params for logging
+
+### Dependencies
+
+* Bump down clojure dependency to 1.6.0
+
 ## 0.7.4
 
 ### Bug fixes
