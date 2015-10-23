@@ -2,6 +2,9 @@
   (:require [clj-http.client :as http]
             [compojure.core :refer [GET POST defroutes]]
             [compojure.route :as route]
+            [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.nested-params :refer [wrap-nested-params]]
+            [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.adapter.jetty :as jetty]
             [ring.logger :as logger]))
 
@@ -12,6 +15,9 @@
 
 (def app (-> handler
              logger/wrap-with-logger
+             wrap-keyword-params
+             wrap-nested-params
+             wrap-params
              logger/wrap-with-body-logger))
 
 (defn -main [& args]
@@ -21,7 +27,8 @@
 
     ; Hello ring-logger!
     (http/get "http://localhost:14587/?name=ring-logger"
-              {:headers {"foo" "baz"}})
+              {:headers {"foo" "baz"
+                         "authorization" "Basic super-secret!"}})
 
     ; not found
     (try
@@ -31,7 +38,10 @@
 
     ; throws
     (try
-      (http/post "http://localhost:14587/throws" {:form-params {:foo "bar"}})
+      (http/post "http://localhost:14587/throws" {:form-params {:foo "bar"
+                                                                :nested {:password "5678"
+                                                                         :id 1}
+                                                                :password "1234"}})
       ; ignore
       (catch Throwable t))
 
