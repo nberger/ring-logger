@@ -127,6 +127,16 @@
                                  (when timing (get-total-time req))
                                  (str status)))
 
+(defn- redact-request [req options]
+  (let [redact #(redact-map % options)]
+    (println "redacting request: " (pr-str req))
+    (-> req
+        (update-in [:headers] redact)
+        (update-in [:params] redact)
+        ;;take the keys from :form-params, because they might be nested
+        ;;and we can't redact them in that case
+        (update-in [:form-params] keys))))
+
 (defmulti exception get-printer)
 
 (defmethod exception :default
@@ -140,7 +150,7 @@
               " processing request:"
               " for " remote-addr
               (when timing (str " in (" (get-total-time request) " ms)"))
-              " - request was: " request)))
+              " - request was: " (pr-str (redact-request request options)))))
 
 (defmethod exception :no-color
   [{:keys [logger timing] :as options}
@@ -153,4 +163,4 @@
               " processing request:"
               " for " remote-addr
               (when timing (str " in (" (get-total-time request) " ms)"))
-              " - request was: " request)))
+              " - request was: " (pr-str (redact-request request options)))))
