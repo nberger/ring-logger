@@ -58,7 +58,7 @@ Example:
 ```clojure
 (wrap-with-logger my-ring-app
   {:logger (reify ring.logger/Logger
-                  (log [level throwable msg]
+                  (log [_ level throwable msg]
                     (case level
                       :error
                       (println "OH NOES! We have an error!"
