@@ -6,21 +6,16 @@
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.adapter.jetty :as jetty]
-            [ring.logger :as logger]))
+            [ring.logger :as logger]
+            [ring.logger.protocols :as logger.protocols]
+            [ring.logger.tools-logging :refer [make-tools-logging-logger]]))
 
 (defroutes handler
   (GET "/" [name] (format "<h1>Hello, %s!</h1>" name))
   (POST "/throws" [] (throw (Exception. "Oops, sooooorry")))
   (route/not-found "<h1>Page not found</h1>"))
 
-(def app (-> handler
-             logger/wrap-with-logger
-             wrap-keyword-params
-             wrap-nested-params
-             wrap-params
-             logger/wrap-with-body-logger))
-
-(defn -main [& args]
+(defn run [app]
   (let [server (jetty/run-jetty app
                                 {:port 14587
                                  :join? false})]
@@ -49,3 +44,34 @@
 
     ; stop server
     (.stop server)))
+
+(def ^:dynamic *request-id* nil)
+
+(defn add-request-id [handler]
+  (fn [request]
+    (binding [*request-id* (rand-int 0xffff)]
+      (handler request))))
+
+(defn make-with-request-id-logger []
+  (let [logger (make-tools-logging-logger)]
+    (reify logger.protocols/Logger
+      (add-extra-middleware [_ handler] handler)
+      (log [_ level throwable message]
+        (logger.protocols/log logger level throwable (format "(%04x) %s" *request-id* message))))))
+
+(defn -main [& args]
+  (run (-> handler
+           logger/wrap-with-logger
+           wrap-keyword-params
+           wrap-nested-params
+           wrap-params
+           logger/wrap-with-body-logger))
+
+  ;; this second example prefixes every log line with a unique request-id
+  (run (-> handler
+           (logger/wrap-with-logger {:logger (make-with-request-id-logger)})
+           add-request-id
+           wrap-keyword-params
+           wrap-nested-params
+           wrap-params
+           logger/wrap-with-body-logger)))

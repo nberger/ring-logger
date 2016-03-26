@@ -155,6 +155,43 @@ If you want to use your own function to redact the keys, you can pass a `redact-
 
 If you don't like `"[REDACTED]"` as the redacted value and want to use a different one, just pass the `:redact-value` option.
 
+## Add a request id to group all the logging related to a request
+
+This can be accomplished by adding a ring middleware to generate a unique
+request id and implementing the Logger protocol to prefix the logged messages
+with that request id:
+
+```clojure
+(ns foo
+  (:require [ring.logger :as logger]
+            [ring.logger.protocols :as logger.protocols]
+            [ring.logger.tools-logging :refer [make-tools-logging-logger]]))
+
+(def ^:dynamic *request-id* nil)
+
+(defn add-request-id [handler]
+  (fn [request]
+    (binding [*request-id* (rand-int 0xffff)]
+      (handler request))))
+
+(defn make-with-request-id-logger []
+  (let [logger (make-tools-logging-logger)]
+    (reify logger.protocols/Logger
+      (add-extra-middleware [_ handler] handler)
+      (log [_ level throwable message]
+        (logger.protocols/log logger level throwable (format "(%04x) %s" *request-id* message))))))
+
+(defroutes handler
+  (GET "/" [name] (format "<h1>Hello, %s!</h1>" name)))
+
+(def app (-> handler
+             (logger/wrap-with-logger {:logger (make-with-request-id-logger)})
+             add-request-id))
+```
+
+This technique is shown in the second example in [the example app](example) (which is located
+in the `example` directory)
+
 ## Example Log
 
 This is an example of logging at TRACE level with log4j:
