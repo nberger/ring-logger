@@ -13,14 +13,7 @@
   (POST "/throws" [] (throw (Exception. "Oops, sooooorry")))
   (route/not-found "<h1>Page not found</h1>"))
 
-(def app (-> handler
-             logger/wrap-with-logger
-             wrap-keyword-params
-             wrap-nested-params
-             wrap-params
-             logger/wrap-with-body-logger))
-
-(defn -main [& args]
+(defn run [app]
   (let [server (jetty/run-jetty app
                                 {:port 14587
                                  :join? false})]
@@ -49,3 +42,11 @@
 
     ; stop server
     (.stop server)))
+
+(defn -main [& args]
+  (run (-> handler
+           logger/wrap-with-logger
+           wrap-keyword-params
+           wrap-nested-params
+           wrap-params
+           logger/wrap-with-body-logger)))
