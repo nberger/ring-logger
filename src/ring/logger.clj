@@ -40,7 +40,7 @@
 
 (defn make-options [options]
   (let [logger (or (:logger options) (make-tools-logging-logger))
-        redact-keys (or (:redact-keys options) #{"authorization" :password})
+        redact-keys (or (:redact-keys options) #{:authorization :password :cookie :Set-Cookie})
         redact-value (or (:redact-value options) "[REDACTED]")
         redact-fn (or (:redact-fn options) (messages/redact-some redact-keys (constantly redact-value)))]
     (merge {:logger logger

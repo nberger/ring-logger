@@ -1,7 +1,9 @@
 (ns example.core
   (:require [clj-http.client :as http]
+            clj-http.cookies
             [compojure.core :refer [GET POST defroutes]]
             [compojure.route :as route]
+            [ring.middleware.cookies :refer [wrap-cookies]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
@@ -11,19 +13,30 @@
             [ring.logger.tools-logging :refer [make-tools-logging-logger]]))
 
 (defroutes handler
-  (GET "/" [name] (format "<h1>Hello, %s!</h1>" name))
+  (GET "/" [name] {:body (format "<h1>Hello, %s!</h1>" name)
+                   :status 200
+                   :cookies {"password" {:value "007"}
+                             "user" {:value "you"}} })
   (POST "/throws" [] (throw (Exception. "Oops, sooooorry")))
   (route/not-found "<h1>Page not found</h1>"))
 
 (defn run [app]
   (let [server (jetty/run-jetty app
                                 {:port 14587
-                                 :join? false})]
+                                 :join? false})
+        cookie-store (clj-http.cookies/cookie-store)]
 
     ; Hello ring-logger!
     (http/get "http://localhost:14587/?name=ring-logger"
               {:headers {"foo" "baz"
-                         "AuThorization" "Basic super-secret!"}})
+                         "AuThorization" "Basic super-secret!"}
+               :cookie-store cookie-store})
+
+    ; Hello Nico!
+    (http/get "http://localhost:14587/?name=Nico&password=pass"
+              {:headers {"foo" "baz"
+                         "AuThorization" "Basic super-secret!"}
+               :cookie-store cookie-store})
 
     ; not found
     (try
@@ -62,6 +75,7 @@
 (defn -main [& args]
   (run (-> handler
            logger/wrap-with-logger
+           wrap-cookies
            wrap-keyword-params
            wrap-nested-params
            wrap-params
@@ -71,6 +85,7 @@
   (run (-> handler
            (logger/wrap-with-logger {:logger (make-with-request-id-logger)})
            add-request-id
+           wrap-cookies
            wrap-keyword-params
            wrap-nested-params
            wrap-params
