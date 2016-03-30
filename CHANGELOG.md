@@ -6,6 +6,10 @@
 
 * Redact cookies (because sensitive information might be in cookies) #19
 
+### Breaking changes
+
+* `:redact-keys` accepts only keywords now. Strings are not accepted anymore.
+
 ## 0.7.5
 
 ### New features
