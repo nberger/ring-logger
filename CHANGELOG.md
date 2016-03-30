@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.6
+
+### Enhancements
+
+* Redact cookies (because sensitive information might be in cookies) #19
+
 ## 0.7.5
 
 ### New features
