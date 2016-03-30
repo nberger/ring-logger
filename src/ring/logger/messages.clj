@@ -13,8 +13,10 @@
   "Creates a function that will redact each key from keys found at any nesting
   level in m.
   The redacted value is obtained by applying redact-fn to key and value"
-  [keys redact-value-fn]
-  (let [f (fn [[k v]] (if (keys k) [k (redact-value-fn k v)] [k v]))]
+  [redact-keys redact-value-fn]
+  (let [f (fn [[k v]] (if (contains? redact-keys (keyword k))
+                        [k (redact-value-fn k v)]
+                        [k v]))]
     (fn [m]
       (walk/postwalk (fn [x] (if (map? x) (into {} (map f x)) x)) m))))
 
@@ -66,8 +68,11 @@
 (defmulti sending-response get-printer)
 
 (defmethod sending-response :default
-  [{:keys [logger]} response]
-  (trace logger (str "[ring] Sending response: " response)))
+  [{:keys [logger] :as options} response]
+  (trace logger (str "[ring] Sending response: "
+                     (cond-> response
+                       (:cookies response) (update-in [:cookies] keys)
+                       (:headers response) (update-in [:headers] #(redact-map % options))))))
 
 (defmulti finished get-printer)
 
