@@ -134,7 +134,6 @@
 
 (defn- redact-request [req options]
   (let [redact #(redact-map % options)]
-    (println "redacting request: " (pr-str req))
     (-> req
         (update-in [:headers] redact)
         (update-in [:params] redact)
