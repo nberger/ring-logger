@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.7
+
+### Bug fixes
+
+* Remove unnecessary println line - #22 - Thanks @singen!
+* Avoid reflection warning - #20 - Thanks @mtkp!
+
 ## 0.7.6
 
 ### Enhancements
