@@ -1,0 +1,4 @@
+test:
+  override:
+    - lein check-all
+    - lein test-all
