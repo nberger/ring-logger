@@ -10,7 +10,8 @@
   [handler {:keys [timing exceptions] :as options}]
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
-  (fn [request]
+  (fn
+    ([request]
     (try
       (messages/starting options request)
       (messages/request-details options request)
@@ -31,12 +32,47 @@
                           (assoc request :logger-end-time (System/currentTimeMillis))
                           request)]
             (messages/exception options request t)))
-        (throw t)))))
+        (throw t))))
+    ([request respond raise]
+     (try
+      (messages/starting options request)
+      (messages/request-details options request)
+      (messages/request-params options request)
+
+      (handler request
+               #(let [request (if timing
+                                (assoc request :logger-end-time (System/currentTimeMillis))
+                                request)]
+                  (messages/sending-response options %)
+                  (messages/finished options request %)
+                  (respond %))
+               #(let [request (if timing
+                                (assoc request :logger-end-time (System/currentTimeMillis))
+                                request)]
+                  (messages/exception options request %)
+                  (raise %)))
+      (catch Throwable t
+        (when exceptions
+          (let [request (if timing
+                          (assoc request :logger-end-time (System/currentTimeMillis))
+                          request)]
+            (messages/exception options request t)))
+        (throw t))))
+
+
+    ))
 
 (defn wrap-request-start [handler]
-  #(-> %
-       (assoc :logger-start-time (System/currentTimeMillis))
-       handler))
+  (fn
+    ([request]
+     (-> request
+         (assoc :logger-start-time (System/currentTimeMillis))
+         handler))
+    ([request respond raise]
+     (handler (assoc request :logger-start-time (System/currentTimeMillis))
+              respond
+              raise))))
+
 
 (defn make-options [options]
   {:pre [(every? keyword? (:redact-keys options))]}
