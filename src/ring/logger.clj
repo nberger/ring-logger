@@ -6,6 +6,12 @@
     [ring.logger.messages :as messages]
     [ring.logger.protocols :refer [add-extra-middleware debug]]))
 
+(defn- assoc-end-time
+  [request timing]
+  (if timing
+    (assoc request :logger-end-time (System/currentTimeMillis))
+    request))
+
 (defn- wrap-with-logger*
   [handler {:keys [timing exceptions] :as options}]
 ;; Long ago, originally based on
@@ -18,9 +24,7 @@
       (messages/request-params options request)
 
       (let [response (handler request)
-            request (if timing
-                      (assoc request :logger-end-time (System/currentTimeMillis))
-                      request)]
+            request  (assoc-end-time request timing)]
         (messages/sending-response options response)
         (messages/finished options request response)
 
@@ -28,9 +32,7 @@
 
       (catch Throwable t
         (when exceptions
-          (let [request (if timing
-                          (assoc request :logger-end-time (System/currentTimeMillis))
-                          request)]
+          (let [request (assoc-end-time request timing)]
             (messages/exception options request t)))
         (throw t))))
     ([request respond raise]
@@ -40,27 +42,18 @@
       (messages/request-params options request)
 
       (handler request
-               #(let [request (if timing
-                                (assoc request :logger-end-time (System/currentTimeMillis))
-                                request)]
+               #(let [request (assoc-end-time request timing)]
                   (messages/sending-response options %)
                   (messages/finished options request %)
                   (respond %))
-               #(let [request (if timing
-                                (assoc request :logger-end-time (System/currentTimeMillis))
-                                request)]
+               #(let [request (assoc-end-time request timing)]
                   (messages/exception options request %)
                   (raise %)))
       (catch Throwable t
         (when exceptions
-          (let [request (if timing
-                          (assoc request :logger-end-time (System/currentTimeMillis))
-                          request)]
+          (let [request (assoc-end-time request timing)]
             (messages/exception options request t)))
-        (throw t))))
-
-
-    ))
+        (throw t))))))
 
 (defn wrap-request-start [handler]
   (fn
