@@ -46,14 +46,16 @@
                   (messages/sending-response options %)
                   (messages/finished options request %)
                   (respond %))
-               #(let [request (assoc-end-time request timing)]
-                  (messages/exception options request %)
+               #(do
+                  (when exceptions
+                    (let [request (assoc-end-time request timing)]
+                      (messages/exception options request %)))
                   (raise %)))
       (catch Throwable t
         (when exceptions
           (let [request (assoc-end-time request timing)]
             (messages/exception options request t)))
-        (throw t))))))
+        (raise t))))))
 
 (defn wrap-request-start [handler]
   (fn
