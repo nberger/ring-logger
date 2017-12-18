@@ -6,20 +6,25 @@
     [ring.logger.messages :as messages]
     [ring.logger.protocols :refer [add-extra-middleware debug]]))
 
+(defn- assoc-end-time
+  [request timing]
+  (if timing
+    (assoc request :logger-end-time (System/currentTimeMillis))
+    request))
+
 (defn- wrap-with-logger*
   [handler {:keys [timing exceptions] :as options}]
 ;; Long ago, originally based on
 ;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
-  (fn [request]
+  (fn
+    ([request]
     (try
       (messages/starting options request)
       (messages/request-details options request)
       (messages/request-params options request)
 
       (let [response (handler request)
-            request (if timing
-                      (assoc request :logger-end-time (System/currentTimeMillis))
-                      request)]
+            request  (assoc-end-time request timing)]
         (messages/sending-response options response)
         (messages/finished options request response)
 
@@ -27,16 +32,42 @@
 
       (catch Throwable t
         (when exceptions
-          (let [request (if timing
-                          (assoc request :logger-end-time (System/currentTimeMillis))
-                          request)]
+          (let [request (assoc-end-time request timing)]
             (messages/exception options request t)))
-        (throw t)))))
+        (throw t))))
+    ([request respond raise]
+     (try
+      (messages/starting options request)
+      (messages/request-details options request)
+      (messages/request-params options request)
+
+      (handler request
+               #(let [request (assoc-end-time request timing)]
+                  (messages/sending-response options %)
+                  (messages/finished options request %)
+                  (respond %))
+               #(do
+                  (when exceptions
+                    (let [request (assoc-end-time request timing)]
+                      (messages/exception options request %)))
+                  (raise %)))
+      (catch Throwable t
+        (when exceptions
+          (let [request (assoc-end-time request timing)]
+            (messages/exception options request t)))
+        (raise t))))))
 
 (defn wrap-request-start [handler]
-  #(-> %
-       (assoc :logger-start-time (System/currentTimeMillis))
-       handler))
+  (fn
+    ([request]
+     (-> request
+         (assoc :logger-start-time (System/currentTimeMillis))
+         handler))
+    ([request respond raise]
+     (handler (assoc request :logger-start-time (System/currentTimeMillis))
+              respond
+              raise))))
+
 
 (defn make-options [options]
   {:pre [(every? keyword? (:redact-keys options))]}
@@ -101,9 +132,16 @@
 
   This is inefficient, and should only be used for debugging."
   ([handler logger]
-  (fn [request]
-    (let [body ^String (slurp (:body request))]
-      (debug logger (str "-- Raw request body: '" body "'"))
-      (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))))))
+   (fn
+     ([request]
+      (let [body ^String (slurp (:body request))]
+        (debug logger (str "-- Raw request body: '" body "'"))
+        (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body))))))
+     ([request respond raise]
+      (let [body ^String (slurp (:body request))]
+        (debug logger (str "-- Raw request body: '" body "'"))
+        (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))
+                 respond
+                 raise)))))
   ([handler]
    (wrap-with-body-logger handler (make-tools-logging-logger))))
