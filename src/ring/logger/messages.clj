@@ -26,7 +26,10 @@
 (defn- make-default-starting-message
   [options {:keys [request-method uri remote-addr query-string headers] :as req}]
   (str request-method " "
-       uri (if query-string (str "?" query-string))
+       (if (and query-string
+                (:log-query-string? options)) 
+             (str uri "?" query-string)
+             uri)
        " for " remote-addr
        " " (pr-str (redact-map headers options))))
 
@@ -43,17 +46,20 @@
 (defmulti request-details get-printer)
 
 (defmethod request-details :default
-  [{:keys [logger] :as options} req]
-  (debug logger (str "Request details: " (select-keys req [:character-encoding
-                                                    :content-length
-                                                    :content-type
-                                                    :query-string
-                                                    :remote-addr
-                                                    :request-method
-                                                    :scheme
-                                                    :server-name
-                                                    :server-port
-                                                    :uri]))))
+  [{:keys [logger log-query-string?] :as options} req]
+  (let [default-keys [:character-encoding
+                     :content-length
+                     :content-type
+                     :query-string
+                     :remote-addr
+                     :request-method
+                     :scheme
+                     :server-name
+                     :server-port
+                     :uri]]
+  (debug logger (str "Request details: " (select-keys req (if log-query-string? 
+                                                            default-keys
+                                                            (remove #{:query-string} default-keys)))))))
 
 (def request-params-default-prefix "  \\ - - - -  Params: ")
 
@@ -84,7 +90,10 @@
    title time-str status-str]
   (let [log-message (str title
                          request-method " "
-                         uri  (if query-string (str "?" query-string))
+                         (if (and query-string
+                                  (:log-query-string? options))
+                           (str  uri "?" query-string)
+                           uri)
                          " for " remote-addr
                          (when timing (str " in (" time-str " ms)"))
                          " Status: " status-str

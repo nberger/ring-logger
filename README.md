@@ -157,6 +157,9 @@ If you want to use your own function to redact the keys, you can pass a `redact-
 
 If you don't like `"[REDACTED]"` as the redacted value and want to use a different one, just pass the `:redact-value` option.
 
+You can also disable query string logging in case it can contain sensitive information with `log-query-string?`
+option.
+
 ## Add a request id to group all the logging related to a request
 
 This can be accomplished by adding a ring middleware to generate a unique

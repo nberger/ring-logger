@@ -123,6 +123,20 @@
            (->> (map #(nth % 3) @*entries*)
                 (filter #(re-find #"secret" %)))))))
 
+(deftest basic-ok-request-logging-without-query-params
+  (let [handler (-> (fn [req]
+                      {:status 200
+                       :body "ok" })
+                    (wrap-with-logger {:logger (make-test-logger)
+                                       :log-query-string? false}))]
+    (handler (mock/request :get "/doc/10?limit=10&secret_access_token=****"))
+    (let [entries @*entries*]
+      (is (not (re-find #"secret_access_token" (-> entries first (nth 3)))))
+      (is (not (re-find #"limit" (-> entries first (nth 3)))))
+      (is (not (re-find #"query-string" (-> entries second (nth 3)))))
+      (is (not (re-find #"secret_access_token" (-> entries last (nth 3)))))
+      (is (not (re-find #"limit" (-> entries last (nth 3))))))))
+
 ;; async
 (deftest async-basic-ok-request-logging
   (let [handler (-> (fn [req respond raise]

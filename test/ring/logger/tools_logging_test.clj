@@ -43,7 +43,6 @@
       (is (re-find #"Finished [m\^\[0-9]+:get /doc/10 for localhost in \(\d+ ms\) Status:.*200"
                    (-> entries last (nth 3)))))))
 
-
 (deftest no-color-ok-request-logging
   (let [handler (-> (fn [req]
                       {:status 200
