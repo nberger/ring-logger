@@ -74,11 +74,15 @@
   (let [logger (or (:logger options) (make-tools-logging-logger))
         redact-keys (or (:redact-keys options) #{:authorization :password :cookie :Set-Cookie})
         redact-value (or (:redact-value options) "[REDACTED]")
-        redact-fn (or (:redact-fn options) (messages/redact-some redact-keys (constantly redact-value)))]
+        redact-fn (or (:redact-fn options) (messages/redact-some redact-keys (constantly redact-value)))
+        log-query-string? (if (nil? (:log-query-string? options))
+                           true 
+                           (:log-query-string? options))]
     (merge {:logger logger
             :redact-fn redact-fn
             :exceptions true
-            :timing true}
+            :timing true
+            :log-query-string? log-query-string?}
            options)))
 
 (defn wrap-with-logger
@@ -100,6 +104,8 @@
                    is present. Default: #{:authorization :password :cookie :Set-Cookie}
     * redact-value: Value used as the replacement for redacted keys. It's passed to build
                     the default redact-fn as `(constantly redact-value)`
+    * log-query-string? Flag which sets whether logger should log query string. Default is true,
+                        set to false in case your query params can contain sensitive data
 
   The actual logging is done by the multimethods in the messages ns.
 
