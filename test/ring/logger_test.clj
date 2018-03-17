@@ -13,6 +13,11 @@
      :body "ok"
      :headers {:ping "pong"}}))
 
+(def throws-handler
+  (fn [req]
+    (Thread/sleep 2)
+    (throw (Exception. "Ooopsie"))))
+
 (deftest log-request-test
   (let [output (atom [])
         log (fn [& args]
@@ -106,6 +111,44 @@
                          ::logger/request-id 42
                          ::logger/ms elapsed}]
              finish))
+      (is (pos? elapsed)))))
+
+(deftest log-request-log-params-with-exception-test
+  (let [output (atom [])
+        log (fn [& args]
+              (swap! output conj args))
+        handler (-> throws-handler
+                    (logger/wrap-log-params {:log-fn log})
+                    wrap-params
+                    (logger/wrap-log-request {:log-fn log
+                                               :request-id-fn (constantly 42)}))
+        ex (try
+            (-> (mock/request :get
+                              "/some/path?password=secret&email=foo@example.com")
+                (handler))
+            (catch Exception e e))
+        [start params logged-ex :as lines] @output]
+    (is (= "Ooopsie" (.getMessage ex)))
+    (is (= 3 (count lines)))
+    (is (= [:info nil {::logger/type :starting
+                       :request-method :get
+                       :uri "/some/path"
+                       ::logger/request-id 42}]
+           start))
+    (is (= [:debug nil {::logger/type :params
+                        ::logger/request-id 42
+                        :request-method :get
+                        :uri "/some/path"
+                        :params {"password" "secret"
+                                 "email" "foo@example.com"}}]
+           params))
+    (let [elapsed (-> logged-ex last ::logger/ms)]
+      (is (= [:error ex {::logger/type :exception
+                         :request-method :get
+                         :uri "/some/path"
+                         ::logger/request-id 42
+                         ::logger/ms elapsed}]
+             logged-ex))
       (is (pos? elapsed)))))
 
 (deftest wrap-logger-test
