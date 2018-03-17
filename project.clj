@@ -1,11 +1,10 @@
-(defproject ring-logger "0.7.8-SNAPSHOT"
+(defproject ring-logger "0.8.0-SNAPSHOT"
   :description "Log ring requests & responses using your favorite logging backend."
   :url "https://github.com/nberger/ring-logger"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :deploy-repositories [["releases" :clojars]]
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojars.pjlegato/clansi "1.3.0"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/tools.logging "0.3.1"]]
   :profiles {:1.6 {:dependencies [[org.clojure/clojure "1.6.0"]]}
              :1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}
@@ -13,6 +12,7 @@
              :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
              :dev {:dependencies [[org.clojure/clojure "1.9.0"]
                                   [ring/ring-mock "0.2.0"]
+                                  [ring/ring-core "1.6.3"]
                                   [ring/ring-codec "1.0.0"]]}}
 
   :repositories {"sonatype-oss-public" "https://oss.sonatype.org/content/groups/public/"}

@@ -2,152 +2,61 @@
   "Ring middleware that logs information about each request to a given
   set of generic logging functions."
   (:require
-    [ring.logger.tools-logging :refer [make-tools-logging-logger]]
-    [ring.logger.messages :as messages]
-    [ring.logger.protocols :refer [add-extra-middleware debug]]))
+    [clojure.tools.logging :as c.t.logging]))
 
-(defn- assoc-end-time
-  [request timing]
-  (if timing
-    (assoc request :logger-end-time (System/currentTimeMillis))
-    request))
+(defn default-request-id-fn [_]
+  (rand-int 0xffffff))
 
-(defn- wrap-with-logger*
-  [handler {:keys [timing exceptions] :as options}]
-;; Long ago, originally based on
-;; https://gist.github.com/kognate/noir.incubator/blob/master/src/noir.incubator/middleware.clj
-  (fn
-    ([request]
-    (try
-      (messages/starting options request)
-      (messages/request-details options request)
-      (messages/request-params options request)
+(defn default-log-fn [level throwable message]
+  (c.t.logging/log level throwable message))
 
-      (let [response (handler request)
-            request  (assoc-end-time request timing)]
-        (messages/sending-response options response)
-        (messages/finished options request response)
+(defn wrap-log-params
+  ([handler] (wrap-log-params {}))
+  ([handler {:keys [log-fn log-level]
+             :or {log-fn default-log-fn
+                  log-level :debug}}]
+   (fn [{:keys [::request-id] :as request}]
+     (log-fn log-level nil (-> (select-keys request [:request-method :uri])
+                                (assoc ::type :params
+                                     :params (:params request))
+                                (cond-> request-id (assoc ::request-id request-id))))
+     (handler request))))
 
-        response)
-
-      (catch Throwable t
-        (when exceptions
-          (let [request (assoc-end-time request timing)]
-            (messages/exception options request t)))
-        (throw t))))
-    ([request respond raise]
-     (try
-      (messages/starting options request)
-      (messages/request-details options request)
-      (messages/request-params options request)
-
-      (handler request
-               #(let [request (assoc-end-time request timing)]
-                  (messages/sending-response options %)
-                  (messages/finished options request %)
-                  (respond %))
-               #(do
-                  (when exceptions
-                    (let [request (assoc-end-time request timing)]
-                      (messages/exception options request %)))
-                  (raise %)))
-      (catch Throwable t
-        (when exceptions
-          (let [request (assoc-end-time request timing)]
-            (messages/exception options request t)))
-        (raise t))))))
-
-(defn wrap-request-start [handler]
-  (fn
-    ([request]
-     (-> request
-         (assoc :logger-start-time (System/currentTimeMillis))
-         handler))
-    ([request respond raise]
-     (handler (assoc request :logger-start-time (System/currentTimeMillis))
-              respond
-              raise))))
-
-
-(defn make-options [options]
-  {:pre [(every? keyword? (:redact-keys options))]}
-  (let [logger (or (:logger options) (make-tools-logging-logger))
-        redact-keys (or (:redact-keys options) #{:authorization :password :cookie :Set-Cookie})
-        redact-value (or (:redact-value options) "[REDACTED]")
-        redact-fn (or (:redact-fn options) (messages/redact-some redact-keys (constantly redact-value)))
-        log-query-string? (if (nil? (:log-query-string? options))
-                           true 
-                           (:log-query-string? options))]
-    (merge {:logger logger
-            :redact-fn redact-fn
-            :exceptions true
-            :timing true
-            :log-query-string? log-query-string?}
-           options)))
+(defn wrap-log-request
+  ([handler] (wrap-log-request handler {}))
+  ([handler {:keys [request-id-fn log-fn]
+             :or {request-id-fn default-request-id-fn
+                  log-fn default-log-fn}}]
+   (fn [request]
+     (let [start-ms (System/currentTimeMillis)
+           request-id (request-id-fn request)]
+       (log-fn :info nil (-> (select-keys request [:request-method :uri])
+                             (assoc ::type :starting)
+                             (cond-> request-id (assoc ::request-id request-id))))
+       (let [response (-> request
+                          (cond-> request-id (assoc ::request-id request-id))
+                          (handler))
+             elapsed-ms (- (System/currentTimeMillis) start-ms)]
+         (log-fn :info nil (-> (select-keys request [:request-method :uri])
+                               (assoc ::type :finish
+                                      :status (:status response)
+                                      ::ms elapsed-ms)
+                               (cond-> request-id (assoc ::request-id request-id))))
+         response)))))
 
 (defn wrap-with-logger
-  "
-  Returns a Ring middleware handler that logs request and response details.
+  "Returns a ring middleware handler that logs request and response details.
 
   Options may include:
-    * logger: Reifies ring.logger.protocoles/Logger. If not provided will use
-              a tools.logging logger.
-    * printer: Used for dispatching to the messages multimethods. If not present
-               it will use the default implementation which adds ANSI coloring to
-               the messages. A :no-color printer is provided.
-    * timing: Log the time taken by the app handler? Defaults to true.
-    * exceptions: Catch, log & rethrow exceptions. Defaults to true
-    * redact-fn: Function used to redact headers and params.
-                 Default: logger.messages/redact-some built from :redact-keys &
-                 :redact-value options
-    * redact-keys: Key set passed to build the default redact-fn. Ignored if :redact-fn
-                   is present. Default: #{:authorization :password :cookie :Set-Cookie}
-    * redact-value: Value used as the replacement for redacted keys. It's passed to build
-                    the default redact-fn as `(constantly redact-value)`
-    * log-query-string? Flag which sets whether logger should log query string. Default is true,
-                        set to false in case your query params can contain sensitive data
-
-  The actual logging is done by the multimethods in the messages ns.
-
-  Before the handler is executed:
-    * messages/starting
-    * messages/request-details
-    * messages/request-params
-
-  After the handler was executed:
-    * messages/sending-response
-    * messages/finished
-
-  When an exception occurs (and :exceptions option is not false):
-    * messages/exception
-  "
+    * log-fn: used to do the actual logging. Accepts 3 params
+              [level throwable message]. Defaults to `clojure.tools.logging/log`.
+    * request-id-fn: takes a request and returns a unique request id which is logged
+              and added to the request map under :ring.logger/request-id key.
+              Defaults to `ring.logger/default-request-id-fn`. The key is not added
+              when the fn returns nil."
   ([handler options]
-   (let [{:keys [logger timing] :as options} (make-options options)]
-     (cond-> handler
-         :always (wrap-with-logger* options)
-         :always (#(add-extra-middleware logger %))
-         timing wrap-request-start)))
+   (-> handler
+       (wrap-log-params options)
+       (wrap-log-request options)))
   ([handler]
    (wrap-with-logger handler {})))
-
-(defn wrap-with-body-logger
-  "Returns a Ring middleware handler that will log the bodies of any
-  incoming requests by reading them into memory, logging them, and
-  then putting them back into a new InputStream for other handlers to
-  read.
-
-  This is inefficient, and should only be used for debugging."
-  ([handler logger]
-   (fn
-     ([request]
-      (let [body ^String (slurp (:body request))]
-        (debug logger (str "-- Raw request body: '" body "'"))
-        (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body))))))
-     ([request respond raise]
-      (let [body ^String (slurp (:body request))]
-        (debug logger (str "-- Raw request body: '" body "'"))
-        (handler (assoc request :body (java.io.ByteArrayInputStream. (.getBytes body)))
-                 respond
-                 raise)))))
-  ([handler]
-   (wrap-with-body-logger handler (make-tools-logging-logger))))
