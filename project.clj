@@ -13,7 +13,9 @@
              :dev {:dependencies [[org.clojure/clojure "1.9.0"]
                                   [ring/ring-mock "0.2.0"]
                                   [ring/ring-core "1.6.3"]
-                                  [ring/ring-codec "1.0.0"]]}}
+                                  [ring/ring-codec "1.0.0"]
+                                  [log4j "1.2.16"]]
+                   :resource-paths ["test-resources"]}}
 
   :repositories {"sonatype-oss-public" "https://oss.sonatype.org/content/groups/public/"}
 

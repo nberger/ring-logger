@@ -189,3 +189,42 @@
                          ::logger/ms elapsed}]
              finish))
       (is (pos? elapsed)))))
+
+(deftest tools-logging-test
+  (let [handler (-> ok-handler
+                    (logger/wrap-with-logger {:request-id-fn (constantly 42)})
+                    wrap-params)
+        output-str (with-out-str
+                     (-> (mock/request :get
+                                       "/some/path?password=secret&email=foo@example.com")
+                         (handler)))
+        lines (->> (s/split-lines output-str)
+                   (map #(s/split % #" " 2)))
+        levels (map first lines)
+        [start params finish] (->> (map second lines)
+                                   (map read-string))]
+    (is (= 3 (count lines)))
+    (is (= ["INFO" "DEBUG" "INFO"]
+           levels))
+
+    (is (= {::logger/type :starting
+            :request-method :get
+            :uri "/some/path"
+            ::logger/request-id 42}
+           start))
+    (is (= {::logger/type :params
+            ::logger/request-id 42
+            :request-method :get
+            :uri "/some/path"
+            :params {"password" "secret"
+                     "email" "foo@example.com"}}
+           params))
+    (let [elapsed (::logger/ms finish)]
+      (is (= {::logger/type :finish
+              :request-method :get
+              :uri "/some/path"
+              :status 200
+              ::logger/request-id 42
+              ::logger/ms elapsed}
+             finish))
+      (is (pos? elapsed)))))
