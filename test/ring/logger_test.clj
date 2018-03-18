@@ -5,7 +5,9 @@
    [ring.middleware.params :refer [wrap-params]]
    [ring.logger :as logger]
    [ring.logger.compat :as logger.compat]
-   [ring.mock.request :as mock]))
+   [ring.mock.request :as mock])
+  (:import
+   [java.io ByteArrayOutputStream PrintStream]))
 
 (def ok-handler
   (fn [req]
@@ -216,11 +218,22 @@
              finish))
       (is (pos? elapsed)))))
 
+(defmacro with-system-out-str [& body]
+  `(let [out-buffer# (ByteArrayOutputStream.)
+         original-out# System/out
+         tmp-out# (PrintStream. out-buffer# true "UTF-8")]
+     (try
+       (System/setOut tmp-out#)
+       ~@body
+       (finally
+         (System/setOut original-out#)))
+     (.toString out-buffer# "UTF-8")))
+
 (deftest tools-logging-test
   (let [handler (-> ok-handler
                     (logger/wrap-with-logger {:request-id-fn (constantly 42)})
                     wrap-params)
-        output-str (with-out-str
+        output-str (with-system-out-str
                      (-> (mock/request :get
                                        "/some/path?password=secret&email=foo@example.com")
                          (handler)))
