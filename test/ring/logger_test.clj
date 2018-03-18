@@ -4,6 +4,7 @@
    [clojure.string :as s]
    [ring.middleware.params :refer [wrap-params]]
    [ring.logger :as logger]
+   [ring.logger.compat :as logger.compat]
    [ring.mock.request :as mock]))
 
 (def ok-handler
@@ -264,23 +265,8 @@
         hostname "logger.example.com"
         elapsed (atom nil)
         transform-fn (fn [log-item]
-                       (update log-item
-                               :message
-                               (fn [{:keys [::logger/type request-method uri server-name
-                                            ::logger/ms status params]}]
-                                 (case type
-                                   :starting
-                                   (str "Starting " request-method " " uri " for " server-name)
-
-                                   :params
-                                   (str "  \\ - - - -  Params: " (pr-str params))
-
-                                   :finish
-                                   (do
-                                     (reset! elapsed ms)
-                                     (str "Finished " request-method " " uri " for " server-name
-                                          " in (" ms " ms)"
-                                          " Status: " status))))))
+                       (reset! elapsed (get-in log-item [:message ::logger/ms]))
+                       (logger.compat/logger-0.7.0-transform-fn log-item))
         handler (-> ok-handler
                     (logger/wrap-with-logger {:request-id-fn (constantly 42)
                                               :transform-fn transform-fn
