@@ -27,8 +27,7 @@
               (swap! output conj message))
         handler (-> ok-handler
                     wrap-params
-                    (logger/wrap-log-request {:log-fn log
-                                               :request-id-fn (constantly 42)}))
+                    (logger/wrap-log-request {:log-fn log}))
         response (-> (mock/request :get
                                    "/some/path?password=secret&email=foo@example.com")
                      (handler))
@@ -42,8 +41,7 @@
             :message {::logger/type :starting
                       :request-method :get
                       :uri "/some/path"
-                      :server-name "localhost"
-                      ::logger/request-id 42}}
+                      :server-name "localhost"}}
            start))
     (let [elapsed (-> finish :message ::logger/ms)]
       (is (= {:level :info
@@ -52,7 +50,6 @@
                         :uri "/some/path"
                         :server-name "localhost"
                         :status 200
-                        ::logger/request-id 42
                         ::logger/ms elapsed}}
              finish))
       (is (pos? elapsed)))))
@@ -89,8 +86,7 @@
         handler (-> ok-handler
                     (logger/wrap-log-params {:log-fn log})
                     wrap-params
-                    (logger/wrap-log-request {:log-fn log
-                                               :request-id-fn (constantly 42)}))
+                    (logger/wrap-log-request {:log-fn log}))
         response (-> (mock/request :get
                                    "/some/path?password=secret&email=foo@example.com")
                      (handler))
@@ -104,12 +100,10 @@
             :message {::logger/type :starting
                       :request-method :get
                       :uri "/some/path"
-                      :server-name "localhost"
-                      ::logger/request-id 42}}
+                      :server-name "localhost"}}
            start))
     (is (= {:level :debug
             :message {::logger/type :params
-                      ::logger/request-id 42
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"
@@ -123,7 +117,6 @@
                         :uri "/some/path"
                         :server-name "localhost"
                         :status 200
-                        ::logger/request-id 42
                         ::logger/ms elapsed}}
              finish))
       (is (pos? elapsed)))))
@@ -135,8 +128,7 @@
         handler (-> throws-handler
                     (logger/wrap-log-params {:log-fn log})
                     wrap-params
-                    (logger/wrap-log-request {:log-fn log
-                                               :request-id-fn (constantly 42)}))
+                    (logger/wrap-log-request {:log-fn log}))
         ex (try
             (-> (mock/request :get
                               "/some/path?password=secret&email=foo@example.com")
@@ -149,12 +141,10 @@
             :message {::logger/type :starting
                       :request-method :get
                       :uri "/some/path"
-                      :server-name "localhost"
-                      ::logger/request-id 42}}
+                      :server-name "localhost"}}
            start))
     (is (= {:level :debug
             :message {::logger/type :params
-                      ::logger/request-id 42
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"
@@ -168,7 +158,6 @@
                         :request-method :get
                         :uri "/some/path"
                         :server-name "localhost"
-                        ::logger/request-id 42
                         ::logger/ms elapsed}}
              logged-ex))
       (is (pos? elapsed)))))
@@ -178,8 +167,7 @@
         log (fn [message]
               (swap! output conj message))
         handler (-> ok-handler
-                    (logger/wrap-with-logger {:log-fn log
-                                              :request-id-fn (constantly 42)})
+                    (logger/wrap-with-logger {:log-fn log})
                     wrap-params)
         response (-> (mock/request :get
                                    "/some/path?password=secret&email=foo@example.com")
@@ -194,12 +182,10 @@
             :message {::logger/type :starting
                       :request-method :get
                       :uri "/some/path"
-                      :server-name "localhost"
-                      ::logger/request-id 42}}
+                      :server-name "localhost"}}
            start))
     (is (= {:level :debug
             :message {::logger/type :params
-                      ::logger/request-id 42
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"
@@ -213,7 +199,6 @@
                         :uri "/some/path"
                         :server-name "localhost"
                         :status 200
-                        ::logger/request-id 42
                         ::logger/ms elapsed}}
              finish))
       (is (pos? elapsed)))))
@@ -231,7 +216,7 @@
 
 (deftest tools-logging-test
   (let [handler (-> ok-handler
-                    (logger/wrap-with-logger {:request-id-fn (constantly 42)})
+                    logger/wrap-with-logger
                     wrap-params)
         output-str (with-system-out-str
                      (-> (mock/request :get
@@ -249,11 +234,9 @@
     (is (= {::logger/type :starting
             :request-method :get
             :uri "/some/path"
-            :server-name "localhost"
-            ::logger/request-id 42}
+            :server-name "localhost"}
            start))
     (is (= {::logger/type :params
-            ::logger/request-id 42
             :request-method :get
             :uri "/some/path"
             :server-name "localhost"
@@ -266,7 +249,6 @@
               :uri "/some/path"
               :server-name "localhost"
               :status 200
-              ::logger/request-id 42
               ::logger/ms elapsed}
              finish))
       (is (pos? elapsed)))))
@@ -281,8 +263,7 @@
                        (reset! elapsed (get-in log-item [:message ::logger/ms]))
                        (logger.compat/logger-0.7.0-transform-fn log-item))
         handler (-> ok-handler
-                    (logger/wrap-with-logger {:request-id-fn (constantly 42)
-                                              :transform-fn transform-fn
+                    (logger/wrap-with-logger {:transform-fn transform-fn
                                               :log-fn log})
                     wrap-params)
         response (-> (mock/request :get
