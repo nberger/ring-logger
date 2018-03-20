@@ -12,37 +12,43 @@
     (when-let [transformed (transform-fn message)]
       (log-fn transformed))))
 
+(def default-request-keys
+  [:request-method :uri :server-name])
+
 (defn wrap-log-params
   ([handler] (wrap-log-params {}))
-  ([handler {:keys [log-fn log-level transform-fn]
+  ([handler {:keys [log-fn log-level transform-fn request-keys]
              :or {log-fn default-log-fn
                   transform-fn identity
-                  log-level :debug}}]
+                  log-level :debug
+                  request-keys default-request-keys}}]
    (fn [request]
      (let [log (make-transform-and-log-fn transform-fn log-fn)]
        (log {:level log-level
-             :message (-> (select-keys request [:request-method :uri :server-name])
+             :message (-> (select-keys request request-keys)
                           (assoc ::type :params
                                  :params (:params request)))}))
      (handler request))))
 
 (defn wrap-log-request
   ([handler] (wrap-log-request handler {}))
-  ([handler {:keys [log-fn log-exceptions? transform-fn]
+  ([handler {:keys [log-fn log-exceptions? transform-fn request-keys]
              :or {log-fn default-log-fn
                   transform-fn identity
-                  log-exceptions? true}}]
+                  log-exceptions? true
+                  request-keys default-request-keys}}]
    (fn [request]
      (let [start-ms (System/currentTimeMillis)
-           log (make-transform-and-log-fn transform-fn log-fn)]
+           log (make-transform-and-log-fn transform-fn log-fn)
+           base-message (select-keys request request-keys)]
        (log {:level :info
-             :message (-> (select-keys request [:request-method :uri :server-name])
+             :message (-> base-message
                           (assoc ::type :starting))})
        (try
          (let [response (handler request)
                elapsed-ms (- (System/currentTimeMillis) start-ms)]
            (log {:level :info
-                 :message (-> (select-keys request [:request-method :uri :server-name])
+                 :message (-> base-message
                               (assoc ::type :finish
                                      :status (:status response)
                                      ::ms elapsed-ms))})
@@ -52,7 +58,7 @@
              (let [elapsed-ms (- (System/currentTimeMillis) start-ms)]
                (log {:level :error
                      :throwable e
-                     :message (-> (select-keys request [:request-method :uri :server-name])
+                     :message (-> base-message
                                   (assoc ::type :exception
                                          ::ms elapsed-ms))})))
            (throw e)))))))
@@ -67,6 +73,9 @@
               it might need to handle: [:start :params :finish :exception]. It can be
               filter messages by returning nil. Log items are maps with keys:
               [:level :throwable :message].
+    * request-keys: Keys from the request that will be logged (unchanged) in addition to the data
+              that ring.logger adds like [::type ::ms].
+              Defaults to [:request-method :uri :server-name]
     * log-exceptions?: When true, logs exceptions as an :error level message, rethrowing
               the original exception. Defaults to true"
   ([handler options]
