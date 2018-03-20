@@ -203,6 +203,48 @@
              finish))
       (is (pos? elapsed)))))
 
+(deftest wrap-logger-with-request-keys-test
+  (let [output (atom [])
+        log (fn [message]
+              (swap! output conj message))
+        handler (-> ok-handler
+                    (logger/wrap-with-logger {:log-fn log
+                                              :request-keys [:server-port :scheme :uri]})
+                    wrap-params)
+        response (-> (mock/request :get
+                                   "/some/path?password=secret&email=foo@example.com")
+                     (handler))
+        [start params finish :as lines] @output]
+    (is (= {:status 200
+            :body "ok"
+            :headers {:ping "pong"}}
+           response))
+    (is (= 3 (count lines)))
+    (is (= {:level :info
+            :message {::logger/type :starting
+                      :uri "/some/path"
+                      :server-port 80
+                      :scheme :http}}
+           start))
+    (is (= {:level :debug
+            :message {::logger/type :params
+                      :uri "/some/path"
+                      :server-port 80
+                      :scheme :http
+                      :params {"password" "secret"
+                               "email" "foo@example.com"}}}
+           params))
+    (let [elapsed (-> finish :message ::logger/ms)]
+      (is (= {:level :info
+              :message {::logger/type :finish
+                        :uri "/some/path"
+                        :server-port 80
+                        :scheme :http
+                        :status 200
+                        ::logger/ms elapsed}}
+             finish))
+      (is (pos? elapsed)))))
+
 (defmacro with-system-out-str [& body]
   `(let [out-buffer# (ByteArrayOutputStream.)
          original-out# System/out
