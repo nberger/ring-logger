@@ -75,7 +75,7 @@
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"
-                      :params {"password" "secret"
+                      :params {"password" "[REDACTED]"
                                "email" "foo@example.com"}}}
            params))))
 
@@ -107,7 +107,7 @@
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"
-                      :params {"password" "secret"
+                      :params {"password" "[REDACTED]"
                                "email" "foo@example.com"}}}
            params))
     (let [elapsed (-> finish :message ::logger/ms)]
@@ -148,7 +148,7 @@
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"
-                      :params {"password" "secret"
+                      :params {"password" "[REDACTED]"
                                "email" "foo@example.com"}}}
            params))
     (let [elapsed (-> logged-ex :message ::logger/ms)]
@@ -189,7 +189,7 @@
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"
-                      :params {"password" "secret"
+                      :params {"password" "[REDACTED]"
                                "email" "foo@example.com"}}}
            params))
     (let [elapsed (-> finish :message ::logger/ms)]
@@ -231,7 +231,7 @@
                       :uri "/some/path"
                       :server-port 80
                       :scheme :http
-                      :params {"password" "secret"
+                      :params {"password" "[REDACTED]"
                                "email" "foo@example.com"}}}
            params))
     (let [elapsed (-> finish :message ::logger/ms)]
@@ -282,7 +282,7 @@
             :request-method :get
             :uri "/some/path"
             :server-name "localhost"
-            :params {"password" "secret"
+            :params {"password" "[REDACTED]"
                      "email" "foo@example.com"}}
            params))
     (let [elapsed (::logger/ms finish)]
@@ -319,7 +319,7 @@
            start))
 
     (is (= {:level :debug
-            :message "  \\ - - - -  Params: {\"password\" \"secret\", \"email\" \"foo@example.com\"}"}
+            :message "  \\ - - - -  Params: {\"password\" \"[REDACTED]\", \"email\" \"foo@example.com\"}"}
            params))
 
     (is (= {:level :info

@@ -2,7 +2,8 @@
   "Ring middleware that logs information about each request to a given
   set of generic logging functions."
   (:require
-    [clojure.tools.logging :as c.t.logging]))
+   [clojure.tools.logging :as c.t.logging]
+   [ring.logger.redaction :as redaction]))
 
 (defn default-log-fn [{:keys [level throwable message]}]
   (c.t.logging/log level throwable message))
@@ -15,19 +16,28 @@
 (def default-request-keys
   [:request-method :uri :server-name])
 
+(def default-redact-key?
+  "A set of the keys redacted by default"
+  #{:authorization :password :token :secret :secret-key :secret-token})
+
 (defn wrap-log-params
   ([handler] (wrap-log-params {}))
-  ([handler {:keys [log-fn log-level transform-fn request-keys]
+  ([handler {:keys [log-fn log-level transform-fn request-keys redact-key? redact-value-fn]
              :or {log-fn default-log-fn
                   transform-fn identity
                   log-level :debug
-                  request-keys default-request-keys}}]
+                  request-keys default-request-keys
+                  redact-key? default-redact-key?
+                  redact-value-fn (constantly "[REDACTED]")}}]
    (fn [request]
-     (let [log (make-transform-and-log-fn transform-fn log-fn)]
+     (let [log (make-transform-and-log-fn transform-fn log-fn)
+           redacted-params (redaction/redact-map (:params request)
+                                                 {:redact-key? redact-key?
+                                                  :redact-value-fn redact-value-fn})]
        (log {:level log-level
              :message (-> (select-keys request request-keys)
                           (assoc ::type :params
-                                 :params (:params request)))}))
+                                 :params redacted-params))}))
      (handler request))))
 
 (defn wrap-log-request
