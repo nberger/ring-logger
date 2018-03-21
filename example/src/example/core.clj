@@ -8,9 +8,7 @@
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.adapter.jetty :as jetty]
-            [ring.logger :as logger]
-            [ring.logger.protocols :as logger.protocols]
-            [ring.logger.tools-logging :refer [make-tools-logging-logger]]))
+            [ring.logger :as logger]))
 
 (defroutes handler
   (GET "/" [name] {:body (format "<h1>Hello, %s!</h1>" name)
@@ -21,30 +19,26 @@
   (route/not-found "<h1>Page not found</h1>"))
 
 (defn run [app]
-  (let [server (jetty/run-jetty app
-                                {:port 14587
-                                 :join? false})
+  (let [server (jetty/run-jetty app {:port 14587
+                                     :join? false})
         cookie-store (clj-http.cookies/cookie-store)]
 
     ; Hello ring-logger!
-    (http/get "http://localhost:14587/?name=ring-logger"
-              {:headers {"foo" "baz"
-                         "AuThorization" "Basic super-secret!"}
-               :cookie-store cookie-store})
-
-    ; Hello Nico!
-    (http/get "http://localhost:14587/?name=Nico&password=pass"
+    (println "\n\nA request with a password param which gets redacted\n")
+    (http/get "http://localhost:14587/?name=ring-logger&password=secret"
               {:headers {"foo" "baz"
                          "AuThorization" "Basic super-secret!"}
                :cookie-store cookie-store})
 
     ; not found
+    (println "\n\nNot found route\n")
     (try
       (http/get "http://localhost:14587/not-found")
       ; ignore
       (catch Throwable t))
 
     ; throws
+    (println "\n\nA route that throws an exception\n")
     (try
       (http/post "http://localhost:14587/throws" {:form-params {:foo "bar"
                                                                 :nested {:password "5678"
@@ -53,7 +47,7 @@
       ; ignore
       (catch Throwable t))
 
-    (println "Done. See that awesome log. I'm stopping the server now...")
+    (println "\n\nWe are done here.")
 
     ; stop server
     (.stop server)))
@@ -62,15 +56,7 @@
 
 (defn add-request-id [handler]
   (fn [request]
-    (binding [*request-id* (rand-int 0xffff)]
-      (handler request))))
-
-(defn make-with-request-id-logger []
-  (let [logger (make-tools-logging-logger)]
-    (reify logger.protocols/Logger
-      (add-extra-middleware [_ handler] handler)
-      (log [_ level throwable message]
-        (logger.protocols/log logger level throwable (format "(%04x) %s" *request-id* message))))))
+    (handler (assoc request :request-id (rand-int 0xffff)))))
 
 (defn -main [& args]
   (run (-> handler
@@ -78,15 +64,14 @@
            wrap-cookies
            wrap-keyword-params
            wrap-nested-params
-           wrap-params
-           logger/wrap-with-body-logger))
+           wrap-params))
 
   ;; this second example prefixes every log line with a unique request-id
+  (println "\n\n*** Same example but adding a :request-id to every log message")
   (run (-> handler
-           (logger/wrap-with-logger {:logger (make-with-request-id-logger)})
+           (logger/wrap-with-logger {:request-keys (conj logger/default-request-keys :request-id)})
            add-request-id
            wrap-cookies
            wrap-keyword-params
            wrap-nested-params
-           wrap-params
-           logger/wrap-with-body-logger)))
+           wrap-params)))
