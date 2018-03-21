@@ -1,0 +1,8 @@
+title: Ring-logger
+description: Log ring requests & responses using your favorite logging backend
+google_analytics: UA-67009779-2
+show_downloads: true
+theme: jekyll-theme-minimal
+
+gems:
+  - jekyll-mentions
