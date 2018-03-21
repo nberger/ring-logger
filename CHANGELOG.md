@@ -2,7 +2,9 @@
 
 ## 0.7.8
 
-* Add option to exclude query-string from being logged - 29 (@pmensik)
+### Enhancements
+
+* Add option to exclude query-string from being logged - #29 (@pmensik)
 * Add asynchronous versions of the middleware - #26 (@grinderrz)
 
 ## 0.7.7
