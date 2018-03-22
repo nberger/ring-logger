@@ -16,6 +16,13 @@
      :body "ok"
      :headers {:ping "pong"}}))
 
+(def error-handler
+  (fn [req]
+    (Thread/sleep 2)
+    {:status 500
+     :body "error"
+     :headers {:ping "pong"}}))
+
 (def throws-handler
   (fn [req]
     (Thread/sleep 2)
@@ -50,6 +57,32 @@
                         :uri "/some/path"
                         :server-name "localhost"
                         :status 200
+                        ::logger/ms elapsed}}
+             finish))
+      (is (pos? elapsed)))))
+
+(deftest log-request-error-test
+  (let [output (atom [])
+        log (fn [message]
+              (swap! output conj message))
+        handler (-> error-handler
+                    wrap-params
+                    (logger/wrap-log-request {:log-fn log}))
+        response (-> (mock/request :get "/some/path")
+                     (handler))
+        [_ finish :as lines] @output]
+    (is (= {:status 500
+            :body "error"
+            :headers {:ping "pong"}}
+           response))
+    (is (= 2 (count lines)))
+    (let [elapsed (-> finish :message ::logger/ms)]
+      (is (= {:level :error
+              :message {::logger/type :finish
+                        :request-method :get
+                        :uri "/some/path"
+                        :server-name "localhost"
+                        :status 500
                         ::logger/ms elapsed}}
              finish))
       (is (pos? elapsed)))))

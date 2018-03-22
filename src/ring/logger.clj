@@ -55,12 +55,15 @@
              :message (-> base-message
                           (assoc ::type :starting))})
        (try
-         (let [response (handler request)
-               elapsed-ms (- (System/currentTimeMillis) start-ms)]
-           (log {:level :info
+         (let [{:keys [status] :as response} (handler request)
+               elapsed-ms (- (System/currentTimeMillis) start-ms)
+               level (if (<= 500 status)
+                       :error
+                       :info)]
+           (log {:level level
                  :message (-> base-message
                               (assoc ::type :finish
-                                     :status (:status response)
+                                     :status status
                                      ::ms elapsed-ms))})
            response)
          (catch Exception e
