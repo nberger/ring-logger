@@ -17,6 +17,10 @@
                                   [log4j "1.2.16"]]
                    :resource-paths ["test-resources"]}}
 
+  :plugins [[lein-codox "0.10.3"]]
+
+  :codox {:source-uri "https://github.com/nberger/ring-logger/blob/0.8.x/{filepath}#L{line}"}
+
   :repositories {"sonatype-oss-public" "https://oss.sonatype.org/content/groups/public/"}
 
   :aliases {"test-all" ["with-profile" "dev,test,1.6:dev,test,1.7:dev,test,1.8:dev,test,1.9" "test"]
