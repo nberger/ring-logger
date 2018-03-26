@@ -1,6 +1,5 @@
 (ns ring.logger
-  "Ring middleware that logs information about each request to a given
-  set of generic logging functions."
+  "Ring middleware to log each request, response, and parameters."
   (:require
    [clojure.tools.logging :as c.t.logging]
    [ring.logger.redaction :as redaction]))
@@ -17,11 +16,31 @@
   [:request-method :uri :server-name])
 
 (def default-redact-key?
-  "A set of the keys redacted by default"
+  "Set of keys redacted by default"
   #{:authorization :password :token :secret :secret-key :secret-token})
 
-(defn wrap-log-params
-  ([handler] (wrap-log-params {}))
+(defn wrap-log-request-params
+  "Ring middleware to log the parameters from each request
+
+  Parameters are redacted by default, replacing the values that correspond to
+  certain keys to \"[REDACTED]\". This is to prevent sensitive information from
+  being written out to logs.
+
+  Options may include:
+
+    * log-fn: used to do the actual logging. Accepts a map with keys
+              [level throwable message]. Defaults to `clojure.tools.logging/log`.
+    * transform-fn: transforms a log item before it is passed through to log-fn. Messsage
+              type it needs to handle: :params. It can filter messages by returning nil.
+              Receives a map (a log item) with keys: [:level :throwable :message].
+    * request-keys: Keys from the request that will be logged (unchanged) in addition to
+              the data that ring.logger adds like [::type :params].
+              Defaults to [:request-method :uri :server-name]
+    * redact-key?: fn that is called on each key in the params map to check whether its
+              value should be redacted. Receives the key, returns truthy/falsy. A common
+              pattern is to use a set.
+              Default value: #{:authorization :password :token :secret :secret-key :secret-token}"
+  ([handler] (wrap-log-request-params {}))
   ([handler {:keys [log-fn log-level transform-fn request-keys redact-key? redact-value-fn]
              :or {log-fn default-log-fn
                   transform-fn identity
@@ -40,27 +59,74 @@
                                  :params redacted-params))}))
      (handler request))))
 
-(defn wrap-log-request
-  ([handler] (wrap-log-request handler {}))
+(defn wrap-log-request-start
+  "Ring middleware to log basic information about a request.
+
+  Adds the key :ring.logger/start-ms to the request map
+
+  Options may include:
+
+    * log-fn: used to do the actual logging. Accepts a map with keys
+              [level throwable message]. Defaults to `clojure.tools.logging/log`.
+    * transform-fn: transforms a log item before it is passed through to log-fn. Messsage types
+              it might need to handle: [:starting]. It can filter messages by returning nil.
+              Receives a map (a log item) with keys: [:level :throwable :message].
+    * request-keys: Keys from the request that will be logged (unchanged) in addition to the data
+              that ring.logger adds like [::type ::ms :status].
+              Defaults to [:request-method :uri :server-name]"
+  ([handler] (wrap-log-request-start handler {}))
+  ([handler {:keys [log-fn transform-fn request-keys]
+             :or {log-fn default-log-fn
+                  transform-fn identity
+                  request-keys default-request-keys}}]
+   (fn [request]
+     (let [start-ms (System/currentTimeMillis)
+           log (make-transform-and-log-fn transform-fn log-fn)]
+       (log {:level :info
+             :message (-> (select-keys request request-keys)
+                          (assoc ::type :starting))})
+       (-> (assoc request ::start-ms start-ms)
+           handler)))))
+
+(defn wrap-log-response
+  "Ring middleware to log response and timing for each request.
+
+  Takes the starting timestamp (in msec.) from the :ring.logger/start-ms key in
+  the request map, or System/currentTimeMillis if that key is not present.
+
+  Options may include:
+
+    * log-fn: used to do the actual logging. Accepts a map with keys
+              [level throwable message]. Defaults to `clojure.tools.logging/log`.
+    * transform-fn: transforms a log item before it is passed through to log-fn. Messsage types
+              it might need to handle: [:finish :exception]. It can filter messages by
+              returning nil. Receives a map (a log item) with keys: [:level :throwable :message].
+    * request-keys: Keys from the request that will be logged (unchanged) in addition to the data
+              that ring.logger adds like [::type ::ms :status].
+              Defaults to [:request-method :uri :server-name]
+    * log-exceptions?: When true, logs exceptions as an :error level message, rethrowing
+              the original exception. Defaults to true"
+  ([handler] (wrap-log-response handler {}))
   ([handler {:keys [log-fn log-exceptions? transform-fn request-keys]
              :or {log-fn default-log-fn
                   transform-fn identity
                   log-exceptions? true
                   request-keys default-request-keys}}]
    (fn [request]
-     (let [start-ms (System/currentTimeMillis)
+     (let [start-ms (or (::start-ms request)
+                        (System/currentTimeMillis))
            log (make-transform-and-log-fn transform-fn log-fn)
            base-message (select-keys request request-keys)]
-       (log {:level :info
-             :message (-> base-message
-                          (assoc ::type :starting))})
        (try
-         (let [response (handler request)
-               elapsed-ms (- (System/currentTimeMillis) start-ms)]
-           (log {:level :info
+         (let [{:keys [status] :as response} (handler request)
+               elapsed-ms (- (System/currentTimeMillis) start-ms)
+               level (if (<= 500 status)
+                       :error
+                       :info)]
+           (log {:level level
                  :message (-> base-message
                               (assoc ::type :finish
-                                     :status (:status response)
+                                     :status status
                                      ::ms elapsed-ms))})
            response)
          (catch Exception e
@@ -74,15 +140,18 @@
            (throw e)))))))
 
 (defn wrap-with-logger
-  "Returns a ring middleware handler that logs request and response details.
+  "Returns a ring middleware handler to log arrival, response, and parameters
+  for each request.
 
+  Log messages are simple clojure maps which can be transform to different
+  representations (string, JSON, etc.) via the transform-fn option
   Options may include:
+
     * log-fn: used to do the actual logging. Accepts a map with keys
               [level throwable message]. Defaults to `clojure.tools.logging/log`.
     * transform-fn: transforms a log item before it is passed through to log-fn. Messsage types
-              it might need to handle: [:start :params :finish :exception]. It can be
-              filter messages by returning nil. Log items are maps with keys:
-              [:level :throwable :message].
+              it might need to handle: [:starting :params :finish :exception]. It can filter
+              log items by returning nil. Log items are maps with keys: [:level :throwable :message].
     * request-keys: Keys from the request that will be logged (unchanged) in addition to the data
               that ring.logger adds like [::type ::ms].
               Defaults to [:request-method :uri :server-name]
@@ -90,7 +159,8 @@
               the original exception. Defaults to true"
   ([handler options]
    (-> handler
-       (wrap-log-params options)
-       (wrap-log-request options)))
+       (wrap-log-response options)
+       (wrap-log-request-params options)
+       (wrap-log-request-start options)))
   ([handler]
    (wrap-with-logger handler {})))

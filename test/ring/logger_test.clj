@@ -16,33 +16,55 @@
      :body "ok"
      :headers {:ping "pong"}}))
 
+(def error-handler
+  (fn [req]
+    (Thread/sleep 2)
+    {:status 500
+     :body "error"
+     :headers {:ping "pong"}}))
+
 (def throws-handler
   (fn [req]
     (Thread/sleep 2)
     (throw (Exception. "Ooopsie"))))
 
-(deftest log-request-test
+(deftest log-request-start-test
   (let [output (atom [])
         log (fn [message]
               (swap! output conj message))
         handler (-> ok-handler
-                    wrap-params
-                    (logger/wrap-log-request {:log-fn log}))
+                    (logger/wrap-log-request-start {:log-fn log}))
         response (-> (mock/request :get
                                    "/some/path?password=secret&email=foo@example.com")
                      (handler))
-        [start finish :as lines] @output]
+        [start :as lines] @output]
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
            response))
-    (is (= 2 (count lines)))
+    (is (= 1 (count lines)))
     (is (= {:level :info
             :message {::logger/type :starting
                       :request-method :get
                       :uri "/some/path"
                       :server-name "localhost"}}
-           start))
+           start))))
+
+(deftest log-response-test
+  (let [output (atom [])
+        log (fn [message]
+              (swap! output conj message))
+        handler (-> ok-handler
+                    (logger/wrap-log-response {:log-fn log}))
+        response (-> (mock/request :get
+                                   "/some/path?password=secret&email=foo@example.com")
+                     (handler))
+        [finish :as lines] @output]
+    (is (= {:status 200
+            :body "ok"
+            :headers {:ping "pong"}}
+           response))
+    (is (= 1 (count lines)))
     (let [elapsed (-> finish :message ::logger/ms)]
       (is (= {:level :info
               :message {::logger/type :finish
@@ -54,12 +76,37 @@
              finish))
       (is (pos? elapsed)))))
 
+(deftest log-request-error-test
+  (let [output (atom [])
+        log (fn [message]
+              (swap! output conj message))
+        handler (-> error-handler
+                    (logger/wrap-log-response {:log-fn log}))
+        response (-> (mock/request :get "/some/path")
+                     (handler))
+        [finish :as lines] @output]
+    (is (= {:status 500
+            :body "error"
+            :headers {:ping "pong"}}
+           response))
+    (is (= 1 (count lines)))
+    (let [elapsed (-> finish :message ::logger/ms)]
+      (is (= {:level :error
+              :message {::logger/type :finish
+                        :request-method :get
+                        :uri "/some/path"
+                        :server-name "localhost"
+                        :status 500
+                        ::logger/ms elapsed}}
+             finish))
+      (is (pos? elapsed)))))
+
 (deftest log-params-test
   (let [output (atom [])
         log (fn [message]
               (swap! output conj message))
         handler (-> ok-handler
-                    (logger/wrap-log-params {:log-fn log})
+                    (logger/wrap-log-request-params {:log-fn log})
                     wrap-params)
         response (-> (mock/request :get
                                    "/some/path?password=secret&email=foo@example.com")
@@ -79,14 +126,15 @@
                                "email" "foo@example.com"}}}
            params))))
 
-(deftest log-request-log-params-test
+(deftest log-request-response-and-params-test
   (let [output (atom [])
         log (fn [message]
               (swap! output conj message))
         handler (-> ok-handler
-                    (logger/wrap-log-params {:log-fn log})
+                    (logger/wrap-log-response {:log-fn log})
+                    (logger/wrap-log-request-params {:log-fn log})
                     wrap-params
-                    (logger/wrap-log-request {:log-fn log}))
+                    (logger/wrap-log-request-start {:log-fn log}))
         response (-> (mock/request :get
                                    "/some/path?password=secret&email=foo@example.com")
                      (handler))
@@ -121,14 +169,15 @@
              finish))
       (is (pos? elapsed)))))
 
-(deftest log-request-log-params-with-exception-test
+(deftest log-request-and-params-with-exception-test
   (let [output (atom [])
         log (fn [message]
               (swap! output conj message))
         handler (-> throws-handler
-                    (logger/wrap-log-params {:log-fn log})
+                    (logger/wrap-log-response {:log-fn log})
+                    (logger/wrap-log-request-params {:log-fn log})
                     wrap-params
-                    (logger/wrap-log-request {:log-fn log}))
+                    (logger/wrap-log-request-start {:log-fn log}))
         ex (try
             (-> (mock/request :get
                               "/some/path?password=secret&email=foo@example.com")
@@ -162,7 +211,7 @@
              logged-ex))
       (is (pos? elapsed)))))
 
-(deftest wrap-logger-test
+(deftest wrap-with-logger-test
   (let [output (atom [])
         log (fn [message]
               (swap! output conj message))

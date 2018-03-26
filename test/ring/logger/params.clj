@@ -16,7 +16,7 @@
         log (fn [message]
               (swap! output conj message))
         handler (-> ok-handler
-                    (logger/wrap-log-params {:log-fn log})
+                    (logger/wrap-log-request-params {:log-fn log})
                     wrap-params)
         response (-> (mock/request :get
                                    "/some/path?password=secret-pass&email=foo@example.com&token=secret-token")
@@ -37,7 +37,7 @@
         log (fn [message]
               (swap! output conj message))
         handler (-> ok-handler
-                    (logger/wrap-log-params {:log-fn log
+                    (logger/wrap-log-request-params {:log-fn log
                                              :redact-key? #{:my-secret}})
                     wrap-params)
         response (-> (mock/request :get
