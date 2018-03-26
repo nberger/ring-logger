@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+
+TODO
+
 ## 0.7.8
 
 ### Enhancements
