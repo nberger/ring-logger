@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.8
+
+### Enhancements
+
+* Add option to exclude query-string from being logged - #29 (@pmensik)
+* Add asynchronous versions of the middleware - #26 (@grinderrz)
+
 ## 0.7.7
 
 ### Bug fixes
