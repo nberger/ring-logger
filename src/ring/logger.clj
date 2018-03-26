@@ -143,8 +143,9 @@
   "Returns a ring middleware handler to log arrival, response, and parameters
   for each request.
 
-  Log messages are simple clojure maps which can be transform to different
-  representations (string, JSON, etc.) via the transform-fn option
+  Log messages are simple clojure maps that can be transformed to a different
+  representation (string, JSON, etc.) via the transform-fn option
+
   Options may include:
 
     * log-fn: used to do the actual logging. Accepts a map with keys
@@ -156,7 +157,11 @@
               that ring.logger adds like [::type ::ms].
               Defaults to [:request-method :uri :server-name]
     * log-exceptions?: When true, logs exceptions as an :error level message, rethrowing
-              the original exception. Defaults to true"
+              the original exception. Defaults to true
+    * redact-key?: fn that is called on each key in the params map to check whether its
+              value should be redacted. Receives the key, returns truthy/falsy. A common
+              pattern is to use a set.
+              Default value: #{:authorization :password :token :secret :secret-key :secret-token}"
   ([handler options]
    (-> handler
        (wrap-log-response options)
