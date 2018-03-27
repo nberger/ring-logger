@@ -5,7 +5,8 @@ response time and other details from each request in your ring server.
 
 - Logs request start, finish, parameters and exceptions by default.
 - The user can choose which of those messages to log by using the more specific middleware.
-- Log messages are simple clojure maps, you can provide a `transform-fn` to use any other format (string, JSON).
+- "Logs as data": Log messages are simple clojure maps. You can provide a `transform-fn` to
+  transform to other representations (string, JSON).
 - Uses [clojure.tools.logging](https://github.com/clojure/tools.logging) by default,
   accepts a `log-fn` for switching to other log backends ([timbre](https://github.com/ptaoussanis/timbre), etc.)
 
