@@ -75,8 +75,8 @@ Other logging backends can be plugged by passing the `log-fn` option. This is ho
     (require '[timbre.core :as timbre])
 
     (-> handler
-        (logger/wrap-log-response {:log-fn (fn [level throwable message]
-                                            (timbre/log level throwable message))}))
+        (logger/wrap-log-response {:log-fn (fn [{:keys [level throwable message]}]
+                                             (timbre/log level throwable message))}))
 ```
 
 ## What gets logged
