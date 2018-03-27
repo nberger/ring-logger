@@ -2,7 +2,46 @@
 
 ## 1.0.0
 
-TODO
+### This is a major, breaking-changes release
+
+- Logger protocol and messages multimethod ("printer") were replaced with `:transform-fn` and `:log-fn` options
+- No default coloring (coloring can be added through the `transform-fn`)
+- "Logs as data": Log messages are simple clojure maps now. This makes it easy to transform to different
+  final representations: string, colored string, JSON, EDN, etc.
+
+Example:
+
+```clojure
+  (require '[clansi.core :as ansi])
+  (require '[timbre.core :as timbre])
+  (require '[ring.logger :refer [wrap-with-logger]])
+  (-> handler
+      (wrap-with-logger {:log-fn (fn [{:keys [level throwable message]}]
+                                   ;; log using timbre instead of clojure.tools.logging
+                                   (timbre/log level throwable message))
+                         :transform-fn (fn [log-item]
+                                         (if (get-in log-item [:message :status])
+                                           ;; colorize the status code
+                                           (update-in log-item
+                                                      [:message :status]
+                                                      (fn [status]
+                                                        (apply ansi/style
+                                                          (str status)
+                                                          (cond
+                                                            (< status 300)  [:default]
+                                                            (>= status 500) [:bright :red]
+                                                            (>= status 400) [:red]
+                                                            :else           [:yellow]))))
+                                           log-item))}))
+```
+
+### New features
+
+- Apart from `wrap-with-logger`, 3 additional middlewares are provided to make it easier to choose what to log:
+  * `wrap-log-request-start`: logs the arrival of a request, adds `:ring.logger/start-ms` key to the request map
+  * `wrap-log-request-params`: logs the parameters, using redaction to hide sensitive data
+  * `wrap-log-response`: logs the response time and status, along with other data to identify the request. Uses
+    `:ring.logger/start-ms` from the request map or calls `(System/currentTimeMillis)` by itself.
 
 ## 0.7.8
 
