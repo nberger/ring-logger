@@ -120,7 +120,8 @@
        (try
          (let [{:keys [status] :as response} (handler request)
                elapsed-ms (- (System/currentTimeMillis) start-ms)
-               level (if (<= 500 status)
+               level (if (and (number? status)
+                              (<= 500 status))
                        :error
                        :info)]
            (log {:level level

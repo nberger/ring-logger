@@ -76,6 +76,25 @@
              finish))
       (is (pos? elapsed)))))
 
+(deftest log-response-no-status-test
+  (let [output (atom [])
+        log #(swap! output conj %)
+        handler (-> (constantly {:body "ok"})
+                    (logger/wrap-log-response {:log-fn log}))]
+    (handler (mock/request :get "/"))
+    (let [[finish :as lines] @output
+          elapsed (-> finish :message ::logger/ms)]
+      (is (= 1 (count lines)))
+      (is (= {:level :info
+              :message {::logger/type :finish
+                        :request-method :get
+                        :uri "/"
+                        :server-name "localhost"
+                        :status nil
+                        ::logger/ms elapsed}}
+             finish))
+      (is (number? elapsed)))))
+
 (deftest log-request-error-test
   (let [output (atom [])
         log (fn [message]
