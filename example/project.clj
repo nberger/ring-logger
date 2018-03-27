@@ -8,5 +8,5 @@
                  [ring/ring-jetty-adapter "1.4.0"]
                  [clj-http "2.0.0"]
                  [log4j/log4j "1.2.16"]
-                 [ring-logger "1.0.0-SNAPSHOT"]]
+                 [ring-logger "1.0.0"]]
   :main example.core)
