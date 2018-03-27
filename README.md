@@ -1,7 +1,7 @@
 # Ring-logger [![Circle CI](https://circleci.com/gh/nberger/ring-logger.svg?style=svg)](https://circleci.com/gh/nberger/ring-logger)
 
 [Ring](https://github.com/ring-clojure/ring) [middleware](https://github.com/ring-clojure/ring/wiki/Concepts#middleware) to log
-response time and other details from each request in your ring server.
+response time and other details of each request that arrives to your server.
 
 - Logs request start, finish, parameters and exceptions by default.
 - The user can choose which of those messages to log by using the more specific middleware.
