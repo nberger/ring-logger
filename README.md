@@ -10,10 +10,11 @@ response time and other details from each request in your ring server.
 - Uses [clojure.tools.logging](https://github.com/clojure/tools.logging) by default,
   accepts a `log-fn` for switching to other log backends ([timbre](https://github.com/ptaoussanis/timbre), etc.)
 
-
-## Getting started
+[DOCUMENTATION](https://nberger.github.io/ring-logger/doc) | [0.7.x](https://github.com/nberger/ring-logger/tree/0.7.x)
 
 [![Clojars Project](http://clojars.org/ring-logger/latest-version.svg)](http://clojars.org/ring-logger)
+
+## Getting started
 
 Add the dependency to your project:
 
