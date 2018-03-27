@@ -145,6 +145,7 @@ Consult the [ring.middleware.conditional docs](https://github.com/pjlegato/ring.
 
 [pjlegato/ring.middleware.logger](http://github.com/pjlegato/ring.middleware.logger): ring-logger started as a fork
 of ring.middleware.logger. It's a great option if you don't mind pulling a transitive dependency on onelog & log4j.
+
 [lambdaisland/ring.middleware.logger](https://github.com/RadicalZephyr/ring.middleware.logger): a fork of r.m.logger
 that replaces onelog with clojure.tools.logging
 
