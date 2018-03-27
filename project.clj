@@ -1,4 +1,4 @@
-(defproject ring-logger "0.8.0-SNAPSHOT"
+(defproject ring-logger "1.0.0-SNAPSHOT"
   :description "Log ring requests & responses using your favorite logging backend."
   :url "https://github.com/nberger/ring-logger"
   :license {:name "Eclipse Public License"
@@ -19,7 +19,7 @@
 
   :plugins [[lein-codox "0.10.3"]]
 
-  :codox {:source-uri "https://github.com/nberger/ring-logger/blob/0.8.x/{filepath}#L{line}"}
+  :codox {:source-uri "https://github.com/nberger/ring-logger/blob/master/{filepath}#L{line}"}
 
   :repositories {"sonatype-oss-public" "https://oss.sonatype.org/content/groups/public/"}
 
