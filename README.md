@@ -51,7 +51,7 @@ ring.logger comes with more fine-grained middleware apart from `wrap-with-logger
 
 - `wrap-log-request-start`: Logs the start of the request
 - `wrap-log-response`
-- `wrap-log-params`: Logs the request parameters, using redaction to hide sensitive values (passwords, tokens, etc)
+- `wrap-log-request-params`: Logs the request parameters, using redaction to hide sensitive values (passwords, tokens, etc)
 
 To log just the start and finish of requests (no parameters):
 
