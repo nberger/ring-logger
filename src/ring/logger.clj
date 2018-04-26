@@ -40,7 +40,7 @@
               value should be redacted. Receives the key, returns truthy/falsy. A common
               pattern is to use a set.
               Default value: #{:authorization :password :token :secret :secret-key :secret-token}"
-  ([handler] (wrap-log-request-params {}))
+  ([handler] (wrap-log-request-params handler {}))
   ([handler {:keys [log-fn log-level transform-fn request-keys redact-key? redact-value-fn]
              :or {log-fn default-log-fn
                   transform-fn identity
