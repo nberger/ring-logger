@@ -19,7 +19,7 @@ response time and other details of each request that arrives to your server.
 Add the dependency to your project:
 
 ```clojure
-    [ring-logger "1.0.0"]
+    [ring-logger "1.0.1"]
 ```
 
 ## Usage

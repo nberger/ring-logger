@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+### Fixes
+
+  - Fix on wrap-log-request-params: StackOverflowException when passing handler only - #42 (@yanatan16)
+
 ## 1.0.0
 
 ### This is a major, breaking-changes release
