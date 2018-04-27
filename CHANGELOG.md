@@ -8,7 +8,7 @@
 - No default coloring (coloring can be added through the `transform-fn`)
 - "Logs as data": Log messages are simple clojure maps now. This makes it easy to transform to different
   final representations: string, colored string, JSON, EDN, etc.
-
+  
 Example:
 
 ```clojure
