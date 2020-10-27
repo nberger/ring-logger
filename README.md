@@ -41,8 +41,8 @@ Add the middleware to your ring stack:
 
 Example output:
 
-    INFO  ring.logger: {:request-method :get, :uri "/", :server-name "localhost", :ring.logger/type :starting}                                                                                                  
-    DEBUG ring.logger: {:request-method :get, :uri "/", :server-name "localhost", :ring.logger/type :params, :params {:name "ring-logger", :password "[REDACTED]"}}                                             
+    INFO  ring.logger: {:request-method :get, :uri "/", :server-name "localhost", :ring.logger/type :starting}
+    DEBUG ring.logger: {:request-method :get, :uri "/", :server-name "localhost", :ring.logger/type :params, :params {:name "ring-logger", :password "[REDACTED]"}}
     INFO  ring.logger: {:request-method :get, :uri "/", :server-name "localhost", :ring.logger/type :finish, :status 200, :ring.logger/ms 11}
 
 ## Advanced usage
@@ -65,7 +65,25 @@ To log just the start and finish of requests (no parameters):
 To measure request latency, `wrap-log-response` will use the `ring.logger/start-ms` key added by `wrap-log-request-start`
 if both middlewares are being used, or will call `System/currentTimeMillis` to obtain the value by itself.
 
-## Using other loggging backends
+---
+
+To explicitly log start, finish, and parameters of requests:
+
+```clojure
+    (-> (handler)
+        wrap-log-response
+        ;; the following line must come before `wrap-params`
+        (wrap-log-request-params {:transform-fn #(assoc % :level :info)})
+        wrap-keyword-params        ;; optional
+        wrap-params                ;; required
+        wrap-log-request-start)
+```
+
+Note that in the above example, the `:transform-fn` is optional. You can either bump your log level to DEBUG or use :transform-fn to adjust the log level of params logging before it hits the log-fn. The latter is often preferable, since DEBUG tends to be very noisy.
+
+Also see [the example](https://github.com/nberger/ring-logger/blob/d30e011f0f97afcd944e7a382195db7796ad1015/example/src/example/core.clj#L65-L67).
+
+## Using other logging backends
 
 Other logging backends can be plugged by passing the `log-fn` option. This is how you could use
 [timbre](https://github.com/ptaoussanis/timbre) instead of c.t.logging:
