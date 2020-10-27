@@ -67,7 +67,7 @@ if both middlewares are being used, or will call `System/currentTimeMillis` to o
 
 ---
 
-To log start, finish, and parameters of requests:
+To explicitly log start, finish, and parameters of requests:
 
 ```clojure
     (-> (handler)
@@ -80,6 +80,8 @@ To log start, finish, and parameters of requests:
 ```
 
 Note that in the above example, the `:transform-fn` is optional. You can either bump your log level to DEBUG or use :transform-fn to adjust the log level of params logging before it hits the log-fn. The latter is often preferable, since DEBUG tends to be very noisy.
+
+Also see [the example](https://github.com/nberger/ring-logger/blob/d30e011f0f97afcd944e7a382195db7796ad1015/example/src/example/core.clj#L65-L67).
 
 ## Using other logging backends
 
