@@ -19,6 +19,23 @@
   "Set of keys redacted by default"
   #{:authorization :password :token :secret :secret-key :secret-token})
 
+(defn- log-request-params [request {:keys [log-fn log-level transform-fn request-keys redact-key? redact-value-fn]
+                                    :or {log-fn default-log-fn
+                                         transform-fn identity
+                                         log-level :debug
+                                         request-keys default-request-keys
+                                         redact-key? default-redact-key?
+                                         redact-value-fn (constantly "[REDACTED]")}}]
+  (let [log (make-transform-and-log-fn transform-fn log-fn)
+        redacted-params (redaction/redact-map (:params request)
+                                              {:redact-key? redact-key?
+                                               :redact-value-fn redact-value-fn})]
+    (log {:level log-level
+          :message (-> (select-keys request request-keys)
+                       (assoc ::type :params
+                              :params redacted-params))}))
+  request)
+
 (defn wrap-log-request-params
   "Ring middleware to log the parameters from each request
 
@@ -41,23 +58,23 @@
               pattern is to use a set.
               Default value: #{:authorization :password :token :secret :secret-key :secret-token}"
   ([handler] (wrap-log-request-params handler {}))
-  ([handler {:keys [log-fn log-level transform-fn request-keys redact-key? redact-value-fn]
-             :or {log-fn default-log-fn
-                  transform-fn identity
-                  log-level :debug
-                  request-keys default-request-keys
-                  redact-key? default-redact-key?
-                  redact-value-fn (constantly "[REDACTED]")}}]
-   (fn [request]
-     (let [log (make-transform-and-log-fn transform-fn log-fn)
-           redacted-params (redaction/redact-map (:params request)
-                                                 {:redact-key? redact-key?
-                                                  :redact-value-fn redact-value-fn})]
-       (log {:level log-level
-             :message (-> (select-keys request request-keys)
-                          (assoc ::type :params
-                                 :params redacted-params))}))
-     (handler request))))
+  ([handler options]
+   (fn
+     ([request]
+      (handler (log-request-params request options)))
+     ([request respond raise]
+      (handler (log-request-params request options) respond raise)))))
+
+(defn- log-request-start [request {:keys [log-fn transform-fn request-keys]
+                                   :or {log-fn default-log-fn
+                                        transform-fn identity
+                                        request-keys default-request-keys}}]
+  (let [start-ms (System/currentTimeMillis)
+        log (make-transform-and-log-fn transform-fn log-fn)]
+    (log {:level :info
+          :message (-> (select-keys request request-keys)
+                       (assoc ::type :starting))})
+    (assoc request ::start-ms start-ms)))
 
 (defn wrap-log-request-start
   "Ring middleware to log basic information about a request.
@@ -75,18 +92,33 @@
               that ring.logger adds like [::type ::ms :status].
               Defaults to [:request-method :uri :server-name]"
   ([handler] (wrap-log-request-start handler {}))
-  ([handler {:keys [log-fn transform-fn request-keys]
-             :or {log-fn default-log-fn
-                  transform-fn identity
-                  request-keys default-request-keys}}]
-   (fn [request]
-     (let [start-ms (System/currentTimeMillis)
-           log (make-transform-and-log-fn transform-fn log-fn)]
-       (log {:level :info
-             :message (-> (select-keys request request-keys)
-                          (assoc ::type :starting))})
-       (-> (assoc request ::start-ms start-ms)
-           handler)))))
+  ([handler options]
+   (fn
+     ([request]
+      (handler (log-request-start request options)))
+     ([request respond raise]
+      (handler (log-request-start request options) respond raise)))))
+
+(defn- log-response [{:keys [status] :as response} start-ms log base-message]
+  (let [elapsed-ms (- (System/currentTimeMillis) start-ms)
+        level (if (and (number? status)
+                       (<= 500 status))
+                :error
+                :info)]
+    (log {:level level
+          :message (-> base-message
+                       (assoc ::type :finish
+                              :status status
+                              ::ms elapsed-ms))})
+    response))
+
+(defn- log-exception [ex start-ms log base-message]
+  (let [elapsed-ms (- (System/currentTimeMillis) start-ms)]
+    (log {:level :error
+          :throwable ex
+          :message (-> base-message
+                       (assoc ::type :exception
+                              ::ms elapsed-ms))})))
 
 (defn wrap-log-response
   "Ring middleware to log response and timing for each request.
@@ -112,33 +144,25 @@
                   transform-fn identity
                   log-exceptions? true
                   request-keys default-request-keys}}]
-   (fn [request]
-     (let [start-ms (or (::start-ms request)
-                        (System/currentTimeMillis))
-           log (make-transform-and-log-fn transform-fn log-fn)
-           base-message (select-keys request request-keys)]
-       (try
-         (let [{:keys [status] :as response} (handler request)
-               elapsed-ms (- (System/currentTimeMillis) start-ms)
-               level (if (and (number? status)
-                              (<= 500 status))
-                       :error
-                       :info)]
-           (log {:level level
-                 :message (-> base-message
-                              (assoc ::type :finish
-                                     :status status
-                                     ::ms elapsed-ms))})
-           response)
-         (catch Exception e
-           (when log-exceptions?
-             (let [elapsed-ms (- (System/currentTimeMillis) start-ms)]
-               (log {:level :error
-                     :throwable e
-                     :message (-> base-message
-                                  (assoc ::type :exception
-                                         ::ms elapsed-ms))})))
-           (throw e)))))))
+   (fn
+     ([request]
+      (let [start-ms (or (::start-ms request)
+                         (System/currentTimeMillis))
+            log (make-transform-and-log-fn transform-fn log-fn)
+            base-message (select-keys request request-keys)]
+        (try
+          (log-response (handler request) start-ms log base-message)
+          (catch Exception ex
+            (when log-exceptions? (log-exception ex start-ms log base-message))
+            (throw ex)))))
+     ([request respond raise]
+      (let [start-ms (or (::start-ms request)
+                         (System/currentTimeMillis))
+            log (make-transform-and-log-fn transform-fn log-fn)
+            base-message (select-keys request request-keys)]
+        (handler request
+                 (fn [response] (respond (log-response response start-ms log base-message)))
+                 (fn [ex] (when log-exceptions? (log-exception ex start-ms log base-message)) (raise ex))))))))
 
 (defn wrap-with-logger
   "Returns a ring middleware handler to log arrival, response, and parameters
