@@ -1,4 +1,11 @@
-test:
-  override:
-    - lein check-all
-    - lein test-all
+version: 2
+jobs:
+  build:
+    working_directory: ~/ring-logger
+    docker:
+      - image: circleci/clojure:lein-2.9.1
+    steps:
+      - checkout
+      - run: lein test-all
+      - run: lein check-all
+
