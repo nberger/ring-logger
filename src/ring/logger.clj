@@ -33,8 +33,7 @@
     (log {:level log-level
           :message (-> (select-keys request request-keys)
                        (assoc ::type :params
-                              :params redacted-params))}))
-  request)
+                              :params redacted-params))})))
 
 (defn wrap-log-request-params
   "Ring middleware to log the parameters from each request
@@ -61,9 +60,11 @@
   ([handler options]
    (fn
      ([request]
-      (handler (log-request-params request options)))
+      (log-request-params request options)
+      (handler request))
      ([request respond raise]
-      (handler (log-request-params request options) respond raise)))))
+      (log-request-params request options)
+      (handler request respond raise)))))
 
 (defn- log-request-start [request {:keys [log-fn transform-fn request-keys]
                                    :or {log-fn default-log-fn
@@ -105,15 +106,14 @@
     :error
     :info))
 
-(defn- log-response [{:keys [status] :as response} start-ms log base-message
+(defn- log-response [{:keys [status]} start-ms log base-message
                      {:keys [status-to-log-level-fn]
                       :or {status-to-log-level-fn default-status-to-log-level}}]
   (log {:level (status-to-log-level-fn status)
         :message (-> base-message
                      (assoc ::type :finish
                             :status status
-                            ::ms (- (System/currentTimeMillis) start-ms)))})
-  response)
+                            ::ms (- (System/currentTimeMillis) start-ms)))}))
 
 (defn- log-exception [ex start-ms log base-message]
   (log {:level :error
@@ -156,7 +156,9 @@
             log (make-transform-and-log-fn transform-fn log-fn)
             base-message (select-keys request request-keys)]
         (try
-          (log-response (handler request) start-ms log base-message options)
+          (let [response (handler request)]
+            (log-response response start-ms log base-message options)
+            response)
           (catch Exception ex
             (when log-exceptions? (log-exception ex start-ms log base-message))
             (throw ex)))))
@@ -166,8 +168,13 @@
             log (make-transform-and-log-fn transform-fn log-fn)
             base-message (select-keys request request-keys)]
         (handler request
-                 (fn [response] (respond (log-response response start-ms log base-message options)))
-                 (fn [ex] (when log-exceptions? (log-exception ex start-ms log base-message)) (raise ex))))))))
+                 (fn [response]
+                   (log-response response start-ms log base-message options)
+                   (respond response))
+                 (fn [ex]
+                   (when log-exceptions?
+                     (log-exception ex start-ms log base-message))
+                   (raise ex))))))))
 
 (defn wrap-with-logger
   "Returns a ring middleware handler to log arrival, response, and parameters
