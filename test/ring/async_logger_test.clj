@@ -84,6 +84,35 @@
              (first @output)))
       (is (pos? elapsed)))))
 
+(deftest custom-response-status-config-test
+  (let [output (atom [])
+        log (fn [message]
+              (swap! output conj message))
+        handler (-> ok-handler
+                    (logger/wrap-log-response {:log-fn log
+                                               :status-to-log-level-fn (fn [status] (if (= 200 status) :fatal :trace))}))
+        response (promise)]
+    (handler
+      (mock/request :get
+                    "/some/path?password=secret&email=foo@example.com")
+      (fn [r] (deliver response r))
+      (fn [r] (deliver response r)))
+    (is (= {:status 200
+            :body "ok"
+            :headers {:ping "pong"}}
+           @response))
+    (is (= 1 (count @output)))
+    (let [elapsed (-> (first @output) :message ::logger/ms)]
+      (is (= {:level :fatal
+              :message {::logger/type :finish
+                        :request-method :get
+                        :uri "/some/path"
+                        :server-name "localhost"
+                        :status 200
+                        ::logger/ms elapsed}}
+             (first @output)))
+      (is (pos? elapsed)))))
+
 (deftest log-response-no-status-test
   (let [output (atom [])
         log #(swap! output conj %)
