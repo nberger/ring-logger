@@ -6,6 +6,7 @@ jobs:
       - image: circleci/clojure:lein-2.9.1
     steps:
       - checkout
+      - add_ssh_keys
       - run: lein test-all
       - run: lein check-all
 
