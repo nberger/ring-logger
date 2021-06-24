@@ -1,8 +1,8 @@
 (ns ring.logger
   "Ring middleware to log each request, response, and parameters."
   (:require
-   [clojure.tools.logging :as c.t.logging]
-   [ring.logger.redaction :as redaction]))
+    [clojure.tools.logging :as c.t.logging]
+    [ring.logger.redaction :as redaction]))
 
 (defn default-log-fn [{:keys [level throwable message]}]
   (c.t.logging/log level throwable message))
@@ -166,15 +166,19 @@
       (let [start-ms (or (::start-ms request)
                          (System/currentTimeMillis))
             log (make-transform-and-log-fn transform-fn log-fn)
-            base-message (select-keys request request-keys)]
-        (handler request
-                 (fn [response]
-                   (log-response response start-ms log base-message options)
-                   (respond response))
-                 (fn [ex]
-                   (when log-exceptions?
-                     (log-exception ex start-ms log base-message))
-                   (raise ex))))))))
+            base-message (select-keys request request-keys)
+            logging-raise (fn [ex]
+                            (when log-exceptions?
+                              (log-exception ex start-ms log base-message))
+                            (raise ex))]
+        (try
+          (handler request
+                   (fn [response]
+                     (log-response response start-ms log base-message options)
+                     (respond response))
+                   logging-raise)
+          (catch Throwable t
+            (logging-raise t))))))))
 
 (defn wrap-with-logger
   "Returns a ring middleware handler to log arrival, response, and parameters

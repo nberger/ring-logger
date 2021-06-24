@@ -1,6 +1,6 @@
 (ns ring.async-logger-test
   (:require
-    [clojure.test :refer [deftest is use-fixtures]]
+    [clojure.test :refer [deftest is use-fixtures testing]]
     [clojure.string :as s]
     [ring.middleware.params :refer [wrap-params]]
     [ring.logger-test :refer [with-system-out-str]]
@@ -27,10 +27,15 @@
               :body "error"
               :headers {:ping "pong"}})))
 
-(def throws-handler
+(def raise-handler
   (fn [req respond raise]
     (Thread/sleep 2)
     (raise (Exception. "Ooopsie"))))
+
+(def throw-handler
+  (fn [req respond raise]
+    (Thread/sleep 2)
+    (throw (Exception. "Ooopsie"))))
 
 (deftest log-request-start-test
   (let [output (atom [])
@@ -239,48 +244,216 @@
         (is (pos? elapsed))))))
 
 (deftest log-request-and-params-with-exception-test
-  (let [output (atom [])
-        log (fn [message]
-              (swap! output conj message))
-        handler (-> throws-handler
-                    (logger/wrap-log-response {:log-fn log})
-                    (logger/wrap-log-request-params {:log-fn log})
-                    wrap-params
-                    (logger/wrap-log-request-start {:log-fn log}))
-        ex (promise)]
-    (try
-      (handler (mock/request :get
-                            "/some/path?password=secret&email=foo@example.com")
-              (fn [r] (deliver ex r))
-              (fn [r] (deliver ex r)))
-      (catch Exception _))
-    (is (= "Ooopsie" (.getMessage @ex)))
-    (let [[start params logged-ex :as lines] @output]
-      (is (= 3 (count lines)))
-      (is (= {:level :info
-              :message {::logger/type :starting
-                        :request-method :get
-                        :uri "/some/path"
-                        :server-name "localhost"}}
-             start))
-      (is (= {:level :debug
-              :message {::logger/type :params
-                        :request-method :get
-                        :uri "/some/path"
-                        :server-name "localhost"
-                        :params {"password" "[REDACTED]"
-                                 "email" "foo@example.com"}}}
-             params))
-      (let [elapsed (-> logged-ex :message ::logger/ms)]
-        (is (= {:level :error
-                :throwable @ex
-                :message {::logger/type :exception
+  (testing "When exception is raised"
+    (let [output (atom [])
+          log (fn [message]
+                (swap! output conj message))
+          handler (-> raise-handler
+                      (logger/wrap-log-response {:log-fn log})
+                      (logger/wrap-log-request-params {:log-fn log})
+                      wrap-params
+                      (logger/wrap-log-request-start {:log-fn log}))
+          ex (promise)]
+      (try
+        (handler (mock/request :get
+                               "/some/path?password=secret&email=foo@example.com")
+                 (fn [r] (deliver ex r))
+                 (fn [r] (deliver ex r)))
+        (catch Exception _))
+      (is (= "Ooopsie" (.getMessage @ex)))
+      (let [[start params logged-ex :as lines] @output]
+        (is (= 3 (count lines)))
+        (is (= {:level :info
+                :message {::logger/type :starting
+                          :request-method :get
+                          :uri "/some/path"
+                          :server-name "localhost"}}
+               start))
+        (is (= {:level :debug
+                :message {::logger/type :params
                           :request-method :get
                           :uri "/some/path"
                           :server-name "localhost"
-                          ::logger/ms elapsed}}
-               logged-ex))
-        (is (pos? elapsed))))))
+                          :params {"password" "[REDACTED]"
+                                   "email" "foo@example.com"}}}
+               params))
+        (let [elapsed (-> logged-ex :message ::logger/ms)]
+          (is (= {:level :error
+                  :throwable @ex
+                  :message {::logger/type :exception
+                            :request-method :get
+                            :uri "/some/path"
+                            :server-name "localhost"
+                            ::logger/ms elapsed}}
+                 logged-ex))
+          (is (pos? elapsed))))))
+
+  (testing "When exception is thrown by the handler"
+    (let [output (atom [])
+          log (fn [message]
+                (swap! output conj message))
+          ex (promise)
+          error-catcher (fn [handler]
+                          (fn [request respond raise]
+                            (handler request
+                                     (fn [r] (deliver ex r) (respond r))
+                                     (fn [r] (deliver ex r) (raise r)))))
+          handler (-> throw-handler
+                      (logger/wrap-log-response {:log-fn log})
+                      (logger/wrap-log-request-params {:log-fn log})
+                      wrap-params
+                      (logger/wrap-log-request-start {:log-fn log})
+                      (error-catcher))]
+      (handler (mock/request :get
+                             "/some/path?password=secret&email=foo@example.com")
+               (fn [r] (deliver ex r))
+               (fn [r] (deliver ex r)))
+      (is (= "Ooopsie" (.getMessage @ex)))
+      (let [[start params logged-ex :as lines] @output]
+        (is (= 3 (count lines)))
+        (is (= {:level :info
+                :message {::logger/type :starting
+                          :request-method :get
+                          :uri "/some/path"
+                          :server-name "localhost"}}
+               start))
+        (is (= {:level :debug
+                :message {::logger/type :params
+                          :request-method :get
+                          :uri "/some/path"
+                          :server-name "localhost"
+                          :params {"password" "[REDACTED]"
+                                   "email" "foo@example.com"}}}
+               params))
+        (let [elapsed (-> logged-ex :message ::logger/ms)]
+          (is (= {:level :error
+                  :throwable @ex
+                  :message {::logger/type :exception
+                            :request-method :get
+                            :uri "/some/path"
+                            :server-name "localhost"
+                            ::logger/ms elapsed}}
+                 logged-ex))
+          (is (pos? elapsed))))))
+
+  (testing "When exception is thrown by a middleware"
+    (testing "which is before the log-response middleware"
+      (let [output (atom [])
+           log (fn [message]
+                 (swap! output conj message))
+           ex (promise)
+           error-thrower (fn [handler]
+                           (fn [request respond raise]
+                             (handler request
+                                      (fn [r] (throw (Exception. "Oh no!")))
+                                      (fn [r] (deliver ex r) (raise r)))))
+           error-catcher (fn [handler]
+                           (fn [request respond raise]
+                             (handler request
+                                      (fn [r] (deliver ex r) (respond r))
+                                      (fn [r] (deliver ex r) (raise r)))))
+           handler (-> ok-handler
+                       (error-thrower)
+                       (logger/wrap-log-response {:log-fn log})
+                       (logger/wrap-log-request-params {:log-fn log})
+                       wrap-params
+                       (logger/wrap-log-request-start {:log-fn log})
+                       (error-catcher))]
+       (handler (mock/request :get
+                              "/some/path?password=secret&email=foo@example.com")
+                (fn [r] (deliver ex r))
+                (fn [r] (deliver ex r)))
+       (is (= "Oh no!" (.getMessage @ex)))
+       (let [[start params logged-ex :as lines] @output]
+         (is (= 3 (count lines)))
+         (is (= {:level :info
+                 :message {::logger/type :starting
+                           :request-method :get
+                           :uri "/some/path"
+                           :server-name "localhost"}}
+                start))
+         (is (= {:level :debug
+                 :message {::logger/type :params
+                           :request-method :get
+                           :uri "/some/path"
+                           :server-name "localhost"
+                           :params {"password" "[REDACTED]"
+                                    "email" "foo@example.com"}}}
+                params))
+         (let [elapsed (-> logged-ex :message ::logger/ms)]
+           (is (= {:level :error
+                   :throwable @ex
+                   :message {::logger/type :exception
+                             :request-method :get
+                             :uri "/some/path"
+                             :server-name "localhost"
+                             ::logger/ms elapsed}}
+                  logged-ex))
+           (is (pos? elapsed))))))
+
+    (testing "which is after the log-response middleware"
+      (let [output (atom [])
+            log (fn [message]
+                  (swap! output conj message))
+            ex (promise)
+            error-thrower (fn [handler]
+                            (fn [request respond raise]
+                              (handler request
+                                       (fn [r] (throw (Exception. "Oh no!")))
+                                       (fn [r] (deliver ex r) (raise r)))))
+            error-catcher (fn [handler]
+                            (fn [request respond raise]
+                              (handler request
+                                       (fn [r] (deliver ex r) (respond r))
+                                       (fn [r] (deliver ex r) (raise r)))))
+            handler (-> ok-handler
+                        (logger/wrap-log-response {:log-fn log})
+                        (error-thrower)
+                        (logger/wrap-log-request-params {:log-fn log})
+                        wrap-params
+                        (logger/wrap-log-request-start {:log-fn log})
+                        (error-catcher))]
+        (handler (mock/request :get
+                               "/some/path?password=secret&email=foo@example.com")
+                 (fn [r] (deliver ex r))
+                 (fn [r] (deliver ex r)))
+        (is (= "Oh no!" (.getMessage @ex)))
+        (let [[start params finished logged-ex :as lines] @output]
+          (is (= 4 (count lines)))
+          (is (= {:level :info
+                  :message {::logger/type :starting
+                            :request-method :get
+                            :uri "/some/path"
+                            :server-name "localhost"}}
+                 start))
+          (is (= {:level :debug
+                  :message {::logger/type :params
+                            :request-method :get
+                            :uri "/some/path"
+                            :server-name "localhost"
+                            :params {"password" "[REDACTED]"
+                                     "email" "foo@example.com"}}}
+                 params))
+          (let [elapsed (-> finished :message ::logger/ms)]
+            (is (= {:level :info
+                    :message {:request-method :get
+                              :ring.logger/ms elapsed
+                              :ring.logger/type :finish
+                              :server-name "localhost"
+                              :status 200
+                              :uri "/some/path"}}
+                   finished))
+            (is (pos? elapsed)))
+          (let [elapsed (-> logged-ex :message ::logger/ms)]
+            (is (= {:level :error
+                    :throwable @ex
+                    :message {::logger/type :exception
+                              :request-method :get
+                              :uri "/some/path"
+                              :server-name "localhost"
+                              ::logger/ms elapsed}}
+                   logged-ex))
+            (is (pos? elapsed))))))))
 
 (deftest wrap-with-logger-test
   (let [output (atom [])
