@@ -198,7 +198,7 @@
                                  "email" "foo@example.com"}}}
              params)))))
 
-(deftest log-params-test
+(deftest log-post-params-test
   (let [output (atom [])
         log (fn [message]
               (swap! output conj message))
