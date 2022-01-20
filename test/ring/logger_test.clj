@@ -174,6 +174,37 @@
                                "email" "foo@example.com"}}}
            params))))
 
+(deftest log-post-params-test
+  (let [output (atom [])
+        log (fn [message]
+              (swap! output conj message))
+        handler (-> ok-handler
+                    (logger/wrap-log-request-params {:log-fn log})
+                    wrap-params)
+        response (-> (mock/request :post
+                                   "/some/path?password=secret&email=foo@example.com"
+                                   {:user-id 1
+                                    :token "secret"
+                                    :name "Mr. Foo"})
+                     (handler))
+        [params :as lines] @output]
+    (is (= {:status 200
+            :body "ok"
+            :headers {:ping "pong"}}
+           response))
+    (is (= 1 (count lines)))
+    (is (= {:level :debug
+            :message {:params {"email" "foo@example.com"
+                               "name" "Mr. Foo"
+                               "token" "[REDACTED]"
+                               "password" "[REDACTED]"
+                               "user-id" "1"}
+                      :request-method :post
+                      :ring.logger/type :params
+                      :server-name "localhost"
+                      :uri "/some/path"}}
+           params))))
+
 (deftest log-request-response-and-params-test
   (let [output (atom [])
         log (fn [message]
