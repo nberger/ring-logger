@@ -1,4 +1,5 @@
 (ns ring.logger-test
+  (:refer-clojure :exclude [error-handler])
   (:require
    [clojure.test :refer [deftest is use-fixtures]]
    [clojure.string :as s]
