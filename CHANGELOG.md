@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.1
+
+### Enhancements
+
+- Added support for async ring handlers
+  - Async handlers were supported in 0.7, but support was dropped in 1.0.0
+  - This change should make it easy to migrate to 1.x from 0.7
+- Updated org.clojure/tools.logging dependency to 1.2.3 (thanks @CambodianCoder)
+
+### New features
+
+- Added `:status-to-level-fn`, which allows you to control the logging level of HTTP status codes in `wrap-log-response`.
+
 ## 1.0.1
 
 ### Fixes

@@ -16,10 +16,18 @@ response time and other details of each request that arrives to your server.
 
 ## Getting started
 
-Add the dependency to your project:
+Add the dependency to your project.
+
+Leiningen:
 
 ```clojure
-    [ring-logger "1.0.1"]
+[ring-logger "1.1.1"]
+```
+
+deps.edn:
+
+```clojure
+ring-logger/ring-logger {:mvn/version "1.1.1"}
 ```
 
 ## Usage
