@@ -4,5 +4,6 @@ pom.xml
 /classes/
 .lein-deps-sum
 .lein-env
+.lein-failures
 target
 logs
