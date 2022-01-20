@@ -53,7 +53,7 @@
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (is (= 1 (count @output)))
     (is (= {:level :info
             :message {::logger/type :starting
@@ -77,7 +77,7 @@
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (is (= 1 (count @output)))
     (let [elapsed (-> (first @output) :message ::logger/ms)]
       (is (= {:level :info
@@ -106,7 +106,7 @@
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (is (= 1 (count @output)))
     (let [elapsed (-> (first @output) :message ::logger/ms)]
       (is (= {:level :fatal
@@ -128,7 +128,7 @@
     (handler (mock/request :get "/")
              (fn [r] (deliver response r))
              (fn [r] (deliver response r)))
-    @response
+    (deref response 1000 :timeout)
     (let [[finish :as lines] @output
           elapsed (-> finish :message ::logger/ms)]
       (is (= 1 (count lines)))
@@ -156,7 +156,7 @@
     (is (= {:status 500
             :body "error"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (let [[finish :as lines] @output]
       (is (= 1 (count lines)))
       (let [elapsed (-> finish :message ::logger/ms)]
@@ -186,7 +186,7 @@
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (let [[params :as lines] @output]
       (is (= 1 (count lines)))
       (is (= {:level :debug
@@ -216,7 +216,7 @@
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (let [[start params finish :as lines] @output]
       (is (= 3 (count lines)))
       (is (= {:level :info
@@ -471,7 +471,7 @@
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (let [[start params finish :as lines] @output]
       (is (= 3 (count lines)))
       (is (= {:level :info
@@ -516,7 +516,7 @@
     (is (= {:status 200
             :body "ok"
             :headers {:ping "pong"}}
-           @response))
+           (deref response 1000 :timeout)))
     (let [[start params finish :as lines] @output]
       (is (= 3 (count lines)))
       (is (= {:level :info
@@ -558,7 +558,7 @@
                                      "/some/path?password=secret&email=foo@example.com")
                        (fn [r] (deliver response r))
                        (fn [r] (deliver response r)))
-                     @response)
+                     (deref response 1000 :timeout))
         lines (->> (s/split-lines output-str)
                    (map #(s/split % #" " 2)))
         levels (map first lines)
@@ -609,7 +609,7 @@
                     (str "http://" hostname "/some/path?password=secret&email=foo@example.com"))
       (fn [r] (deliver response r))
       (fn [r] (deliver response r)))
-    @response
+    (deref response 1000 :timeout)
     (let [[start params finish :as lines] @output]
       (is (= 3 (count lines)))
 
