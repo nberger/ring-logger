@@ -8,7 +8,8 @@
    [ring.logger.compat :as logger.compat]
    [ring.mock.request :as mock])
   (:import
-   [java.io ByteArrayOutputStream PrintStream]))
+   [java.io ByteArrayOutputStream PrintStream]
+   [org.apache.log4j LogManager]))
 
 (def ok-handler
   (fn [req]
@@ -347,6 +348,8 @@
          tmp-out# (PrintStream. out-buffer# true "UTF-8")]
      (try
        (System/setOut tmp-out#)
+       ;; The console appender needs to be re-activated to ensure it sees the new value of System/out
+       (.activateOptions (.getAppender (LogManager/getRootLogger) "console"))
        ~@body
        (finally
          (System/setOut original-out#)))

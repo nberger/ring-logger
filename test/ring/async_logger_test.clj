@@ -544,10 +544,7 @@
                finish))
         (is (pos? elapsed))))))
 
-;; This test is similar to ring.logger-test/tools-logging-test,
-;; only it uses the async middleware. However, for some reason
-;; one of the tests fails when both of them are enabled.
-#_(deftest tools-logging-test
+(deftest tools-logging-test
   (let [handler (-> ok-handler
                     logger/wrap-with-logger
                     wrap-params)
